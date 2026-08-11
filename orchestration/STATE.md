@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S00 project bootstrap completed (Executor)
+**Last updated:** 2026-08-11 — S00 project bootstrap completed; recovered from dirty working tree (Recovery)
 
 ## Now
 
@@ -47,7 +47,7 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
-| 2026-08-11 | S00 project bootstrap (Executor) | Completed T1–T6: governance docs, repository skeleton §16.1, Python packaging (cobra-compiler, Python 3.13), ADR template + ADR-0001..0005, lint CI + local check script. Validation passes: `uv sync`, `./scripts/check.sh`, READMEs tracked, import smoke test. |
+| 2026-08-11 | S00 recovery (P2) | Found dirty working tree after a44e1e0 with uncommitted out-of-scope CI/tooling WIP. S00 validation still passes on a44e1e0 (`uv sync`, `./scripts/check.sh`, 80 READMEs, import smoke). Rescued WIP to `rescue/S00-2026-08-11`, reset `sprint/S00-project-bootstrap` to a44e1e0. Sprint remains `needs_validation`; next is P1. |
 | 2026-08-11 | Harness review + rewrite (Devin) | Reviewed loop vs plan; rewrote worker layer to `devin -p` subprocesses; fixed gate detection, blocked-state policy, no-ack mailbox bug, uncommitted STATE advancement. |
 | 2026-08-10 | Sprint issues + labels (Devin) | Created 30 GitHub issues (#1-#30) for S00-S29, labels `sprint`/`milestone-M*`/`gate`, linked from sprint files and ROADMAP.md. |
 
@@ -63,5 +63,8 @@ Items an executor needs from the owner; answer by editing this list.
   (`scripts/cobra_orca_loop.py`, wrapper, precheck).
 - Security contact email remains a flagged placeholder in `SECURITY.md`.
 - Linux + NVIDIA GPU host details still need to be recorded before S02.
+- Uncommitted CI/npm tooling WIP from an unfinished session was rescued to
+  `rescue/S00-2026-08-11`; the sprint branch is now clean at a44e1e0 and still
+  `needs_validation`.
 - Orca automation registered: `Cobra Autonomous Sprint Loop`
   (id `9bc2f963-7a94-46a7-b870-f23f3523cd43`), hourly trigger, enabled.

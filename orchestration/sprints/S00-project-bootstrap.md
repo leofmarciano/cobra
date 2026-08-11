@@ -132,3 +132,11 @@ README.md also present (81 total). STATE.md advanced to in_progress/T3. -->
  pre-existing lint issues in the loop harness so the local check passes.
  Validation commands all green; sprint status set to needs_validation. Next:
  run P1-validate.md in a fresh session. -->
+<!-- [2026-08-11][Recovery] Dirty working tree on `sprint/S00-project-bootstrap`
+after a44e1e0 (uncommitted CI/npm tooling WIP: split workflows, package.json,
+biome/knip/pre-commit, yamllint, expanded scripts/check.sh, malformed SECURITY
+email edit). S00 validation commands pass on a44e1e0 from a clean checkout.
+Rescued the entire uncommitted WIP to `rescue/S00-2026-08-11` and reset the
+sprint branch to a44e1e0. `scripts/cobra_orca_loop.py` was being mutated in the
+background during recovery; the rescue branch captures the latest state. Sprint
+remains `needs_validation`. Next: run P1-validate.md in a fresh session. -->

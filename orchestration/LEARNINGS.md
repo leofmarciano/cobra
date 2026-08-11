@@ -30,6 +30,13 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Loop & process
 
+- [2026-08-11][S00 recovery] A session that does not commit its work leaves the
+  next session in an unrecoverable state. In this case an unfinished session had
+  uncommitted CI/npm tooling WIP on top of a44e1e0. S00 validation still passed
+  on the last commit, so the WIP was rescued to `rescue/S00-2026-08-11` and the
+  sprint branch reset. While rescuing, `scripts/cobra_orca_loop.py` was being
+  mutated in the background (likely an IDE/linter), requiring an amended rescue
+  commit. Rescue and reset quickly; do not try to validate a moving target.
 - [2026-08-11][review] Orca `orchestration worker-start --agent` accepts only
   claude/codex — Devin workers must be spawned as `devin -p` subprocesses.
 - [2026-08-11][review] ~~Headless `devin -p` fails with "Not logged in"
