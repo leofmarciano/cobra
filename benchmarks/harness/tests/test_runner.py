@@ -23,7 +23,9 @@ def _example_manifest() -> BenchmarkManifest:
     return BenchmarkManifest(
         run_id="test-run",
         suite="test-suite",
-        protocol=ProtocolInfo(minimum_samples=5),
+        # The dummy workload is intentionally tiny and noisy on shared CI
+        # runners; production manifests still default to stability warmup.
+        protocol=ProtocolInfo(warmup_policy="fixed", warmup_samples=5, minimum_samples=5),
         workloads=[
             WorkloadSpec(
                 name="dummy_add",

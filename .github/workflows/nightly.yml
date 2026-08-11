@@ -36,7 +36,8 @@ jobs:
   build-smoke:
     name: Build smoke
     runs-on: ubuntu-latest
-    if: false # enable in S06 when CMakeLists.txt lands
+    # Keep opt-in until the native build definition lands in S06.
+    if: ${{ vars.COBRA_ENABLE_BUILD == 'true' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
