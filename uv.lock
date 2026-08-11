@@ -7,6 +7,7 @@ members = [
     "cobra-bench",
     "cobra-compiler",
     "cobra-pipelines",
+    "cobra-tracer",
 ]
 
 [[package]]
@@ -63,6 +64,7 @@ source = { editable = "." }
 dev = [
     { name = "cobra-bench" },
     { name = "cobra-pipelines" },
+    { name = "cobra-tracer" },
     { name = "deptry" },
     { name = "mypy" },
     { name = "pre-commit" },
@@ -80,6 +82,7 @@ provides-extras = ["native"]
 dev = [
     { name = "cobra-bench", editable = "benchmarks/harness" },
     { name = "cobra-pipelines", editable = "benchmarks/pipelines" },
+    { name = "cobra-tracer", editable = "experimental/tracer" },
     { name = "deptry", specifier = ">=0.25,<0.26" },
     { name = "mypy", specifier = ">=1.15,<1.16" },
     { name = "pre-commit", specifier = ">=4.0,<5" },
@@ -113,6 +116,23 @@ requires-dist = [
     { name = "pyarrow", specifier = "==23.0.1" },
     { name = "torch", specifier = "==2.13.0" },
     { name = "torchvision", specifier = "==0.28.0" },
+]
+
+[[package]]
+name = "cobra-tracer"
+version = "0.0.1.dev0"
+source = { editable = "experimental/tracer" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = "==2.4.6" },
+    { name = "pandas", specifier = "==2.3.3" },
+    { name = "torch", specifier = "==2.13.0" },
 ]
 
 [[package]]

@@ -45,6 +45,7 @@ dev = [
     "types-pyyaml>=6.0,<7",
     "cobra-bench",
     "cobra-pipelines",
+    "cobra-tracer",
 ]
 
 [tool.setuptools.packages.find]
@@ -54,11 +55,12 @@ where = ["python"]
 default-groups = ["dev"]
 
 [tool.uv.workspace]
-members = ["benchmarks/harness", "benchmarks/pipelines"]
+members = ["benchmarks/harness", "benchmarks/pipelines", "experimental/tracer"]
 
 [tool.uv.sources]
 cobra-bench = { workspace = true }
 cobra-pipelines = { workspace = true }
+cobra-tracer = { workspace = true }
 
 [tool.ruff]
 target-version = "py313"

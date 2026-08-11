@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cobra-tracer"
+version = "0.0.1.dev0"
+description = "DISPOSABLE whole-program tracer spike for Project Cobra (S03, plan §29 Days 11-20). Never enters a release path (plan §18.4)."
+readme = "README.md"
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+requires-python = "==3.13.*"
+authors = [
+    { name = "The Cobra Project Authors" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Private :: Do Not Upload",
+]
+dependencies = [
+    "numpy==2.4.6",
+    "pandas==2.3.3",
+    "torch==2.13.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+tracer = ["py.typed"]

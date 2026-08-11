@@ -64,6 +64,22 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 - (none yet)
 
+## Tracing / instrumentation
+
+- [2026-08-11][S03] A per-call source-location lookup that calls
+  `Path.resolve()`/`os.path.abspath()` on every stack frame it walks is a
+  hot-loop cost: it turned a 50-iteration `torch.relu(x @ x)` microbenchmark
+  from ~0.005s eager into ~1.4s traced (~250x, blowing the <10x tracer
+  overhead budget). Fix: resolve the "skip dir" prefixes once outside the
+  hot path and compare raw (already-absolute) `frame.f_code.co_filename`
+  strings with plain `str.startswith`, never re-resolving per frame.
+- [2026-08-11][S03] NumPy's `__array_function__` protocol on a custom
+  `ndarray` subclass recurses infinitely if you unwrap only top-level args:
+  functions like `np.concatenate([arr, arr])` pass the traced arrays inside
+  a `list`, so the unwrap step must recurse into `list`/`tuple` arguments
+  before calling the underlying NumPy function, or the wrapped array is
+  still visible to dispatch and re-enters `__array_function__` forever.
+
 ## Benchmarking & measurement
 
 - [2026-08-11][S02] When comparing B0 vs B1 outputs, `torch.compile` may

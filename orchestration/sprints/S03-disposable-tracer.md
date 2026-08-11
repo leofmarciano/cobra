@@ -34,7 +34,7 @@ compiler exists. **This code is explicitly disposable** — it lives in
 ## Tasks
 
 ### T1 — Call-boundary recorder
-- [ ] Do: `experimental/tracer/` package. Record torch ops via
+- [x] Do: `experimental/tracer/` package. Record torch ops via
   `__torch_function__`/`TorchFunctionMode`; pandas via method
   wrapping of a supported-op list (§10.1 names); numpy via
   `__array_function__`; everything else via an explicit opaque-node
@@ -98,3 +98,32 @@ the JSON schema documented in the tracer README.
 ## Session log (append-only)
 
 <!-- [YYYY-MM-DD][session] done / next / surprises -->
+
+- [2026-08-11][executor P0] T1 done. Added `experimental/tracer/` as a uv
+  workspace member (`cobra-tracer`, `src/tracer/` layout) with:
+  `events.py` (Event schema), `handles.py` (value-identity handles keyed by
+  tensor storage pointer / dataframe object id / ndarray base id — views
+  share a handle), `metadata.py` (dtype/shape/schema/device capture),
+  `session.py` (TraceSession + `trace()` context manager wiring all
+  recorders), `torch_mode.py` (real `TorchFunctionMode`),
+  `pandas_wrap.py` (method wrapping over the plan §10.1 op list, restored
+  on exit), `numpy_wrap.py` (real `__array_function__` dispatch on a
+  `TracedArray` subclass — tracing propagates through chained numpy calls
+  since results are re-wrapped), `opaque.py` (decorator + `call_opaque`
+  wrapper with conservative `"opaque:"`-prefixed op names).
+  19 unit/integration tests in `experimental/tracer/tests/` pass
+  (`uv run pytest experimental/tracer -q`), including the T1 acceptance
+  criterion directly: tracing a `model_ensemble`-shaped dual-branch
+  pipeline yields events for both branches with disjoint output handles
+  (`test_session_integration.py`). Also manually traced the real
+  `cobra_pipelines.model_ensemble.b0()` workload: 510 torch events
+  recorded, traced wall time was *not* slower than eager (well under the
+  10x budget) once `_source_location` stopped calling
+  `Path.resolve()`/`os.path.abspath()` per recorded event (that made a
+  synthetic 50-iteration microbenchmark ~250x slower — see
+  `orchestration/LEARNINGS.md`). `./scripts/check.sh` passes.
+  Next: T2 (dependency DAG builder — connect `session.events` into a DAG
+  via the `input_handles`/`output_handles` already recorded, with
+  conservative ordering edges for opaque nodes; export JSON + Graphviz
+  dot; unit tests on synthetic event streams for chain / fan-out-fan-in /
+  mutation-forces-ordering). Sprint remains `in_progress`.

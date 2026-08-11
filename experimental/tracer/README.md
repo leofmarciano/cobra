@@ -1,0 +1,67 @@
+DISPOSABLE — not release code (plan §18.4).
+
+# tracer
+
+A throwaway whole-program tracer spike for Project Cobra (S03,
+`orchestration/sprints/S03-disposable-tracer.md`; plan §29 Days 11-20). Its
+sole purpose is to prove that Cobra can *observe* a real cross-library
+pipeline — call boundaries, tensor/dataframe metadata, dependencies, and
+timings — before any compiler exists. It de-risks the whole-program capture
+thesis (plan §6.1-6.2).
+
+This code:
+
+- lives under `experimental/`, is excluded from release packaging, and is
+  never imported by `python/cobra_compiler`.
+- will be deleted or entirely rewritten once S10 lowers real captures into
+  Cobra IR. Do not build production features on top of it.
+- intentionally trades completeness for simplicity: unknown calls become
+  opaque nodes (plan §6.2/§6.3) rather than failing.
+
+## What it records
+
+Four recorders, one per plan §6.2 capture level relevant to v0.1's target
+libraries:
+
+- **torch** (`tracer.torch_mode.TracingTorchFunctionMode`) — every
+  `torch.*` call, intercepted via `torch.overrides.TorchFunctionMode`
+  (plan §6.2 "tensor graph" level).
+- **pandas** (`tracer.pandas_wrap.pandas_recorder`) — the plan §10.1
+  v0.1-supported operation subset, via method wrapping on
+  `DataFrame`/`Series` plus `pandas.read_parquet`. Anything outside that
+  list runs unrecorded, matching §10.1's "unsupported operations
+  materialize and fall back" rule.
+- **numpy** (`tracer.numpy_wrap`) — real `__array_function__` dispatch on
+  `TracedArray`-wrapped ndarrays (`tracer.numpy_wrap.wrap`); tracing
+  propagates through chains of numpy calls because results are re-wrapped.
+- **opaque** (`tracer.opaque`) — explicit wrapper (`opaque()` decorator or
+  `call_opaque()`) for anything else. Opaque nodes get conservative
+  ordering edges to their neighbors in the DAG builder (S03-T2), never
+  assumed independence (plan §6.3 spirit).
+
+Each recorded `Event` (`tracer.events.Event`) captures: op name, an
+args/kwargs summary, value-identity handles for inputs/outputs
+(`tracer.handles`, keyed by tensor storage pointer / dataframe object id /
+ndarray base id — so views of the same storage share a handle), per-value
+metadata (dtype, shape/schema, device, storage id —
+`tracer.metadata.describe`), wall-clock timing (`time.perf_counter_ns`),
+thread id, and a best-effort call-site source location.
+
+## Usage
+
+```python
+from tracer import trace
+
+with trace() as session:
+    result = my_pipeline(x)
+
+for event in session.events:
+    print(event.op, event.duration_ns, event.input_handles, event.output_handles)
+```
+
+## JSON schema (S10 handoff note)
+
+`tracer.dag` (S03-T2) exports the recorded events plus dependency edges as
+JSON. Keep that schema documented here as it evolves — S10 converts it into
+real Cobra IR, so it is the one artifact from this spike expected to
+outlive `experimental/`.

@@ -1,0 +1,69 @@
+"""Value-identity handles for the disposable tracer (S03-T1).
+
+A "handle" is a short string that identifies *storage identity*, not object
+identity: two different tensor objects that alias the same underlying
+storage (e.g. a view) map to the same tensor handle, matching plan §6.4's
+guard model (storage/allocation identity) and enabling S03-T2's DAG builder
+to connect producer/consumer events correctly even across views.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+try:
+    import torch
+except ImportError:  # pragma: no cover - torch is a hard dependency of this package
+    torch = None  # type: ignore[assignment]
+
+try:
+    import pandas as pd
+except ImportError:  # pragma: no cover
+    pd = None  # type: ignore[assignment]
+
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None  # type: ignore[assignment]
+
+
+def handle_for(value: Any) -> str | None:
+    """Return a stable value-identity handle for ``value``, or ``None``.
+
+    Returns ``None`` for values with no useful identity to track (Python
+    scalars, strings, ``None``, small tuples of scalars, ...) so callers can
+    omit them from ``input_handles``/``output_handles``.
+    """
+    if torch is not None and isinstance(value, torch.Tensor):
+        try:
+            storage = value.untyped_storage()
+            return f"tensor:{storage.data_ptr()}"
+        except (RuntimeError, NotImplementedError):
+            return f"tensor:obj:{id(value)}"
+    if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
+        return f"pandas:{id(value)}"
+    if np is not None and isinstance(value, np.ndarray):
+        base = value.base if value.base is not None else value
+        return f"ndarray:{id(base)}"
+    if isinstance(value, list | tuple | dict | set) and not _is_scalar_container(value):
+        return f"opaque:{id(value)}"
+    if hasattr(value, "__dict__") and not isinstance(value, str | bytes | int | float | bool):
+        return f"opaque:{id(value)}"
+    return None
+
+
+def _is_scalar_container(value: Any) -> bool:
+    """True for small containers of only scalars (not worth tracking)."""
+    items = value.values() if isinstance(value, dict) else value
+    return all(isinstance(v, int | float | bool | str | bytes | type(None)) for v in items)
+
+
+def collect_handles(values: Any) -> tuple[str, ...]:
+    """Flatten ``values`` (a single value, or list/tuple of values) into handles."""
+    candidates = values if isinstance(values, list | tuple) else [values]
+    handles = []
+    for v in candidates:
+        h = handle_for(v)
+        if h is not None:
+            handles.append(h)
+    return tuple(handles)

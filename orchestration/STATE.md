@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 validated and merged
+**Last updated:** 2026-08-11 — S03 T1 complete (executor session)
 
 ## Now
 
@@ -11,10 +11,10 @@
 |---|---|
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
-| Sprint status | `not_started` |
-| Current task | T1 — first task defined in the sprint file |
+| Sprint status | `in_progress` |
+| Current task | T2 — Dependency DAG builder |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Run P0 (Executor) to start S03 |
+| Next action | Run P0 (Executor) to continue S03 with T2 |
 
 ## Blockers
 
@@ -51,15 +51,19 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-11 | S03 executor (P0), T1 complete | Added `experimental/tracer/` (`cobra-tracer` uv workspace member): torch recorder via real `TorchFunctionMode`, pandas recorder via method wrapping over plan §10.1 ops, numpy recorder via real `__array_function__` on a `TracedArray` subclass, opaque-node wrapper, and a `TraceSession`/`trace()` context manager tying them together with value-identity handles (tensor storage ptr / df object id / ndarray base id) and per-event metadata/timing. 19 tests pass (`uv run pytest experimental/tracer -q`); manually verified against the real `cobra_pipelines.model_ensemble.b0()` workload (510 events, both branches disjoint, overhead well under budget after fixing a `Path.resolve()`-per-frame hot-loop bug — see LEARNINGS.md). `./scripts/check.sh` passes. T1 checked off; sprint `in_progress`, next is T2. |
 | 2026-08-11 | S02 validator (P1) | Independently reran `cobra-bench verify` (b0,b1), warm `run`, `analyze` for phase0; all passed. `./scripts/check.sh` passes (123 tests, no new warnings). Minor fixes: added missing `--output`/`--seed 42` to the sprint Validation block, and added D-008 to `DECISIONS.md` for the S02 dependency additions. Merged sprint branch to `main`; S02 status `done`. |
 | 2026-08-11 | S02 executor (P0), T5 complete | Installed cudf-cu13 26.6.0 as real dependency; fixed `_engineer_features` cudf.pandas column-alignment issue. Ran `cobra-bench verify`, warm `run` (180 samples), and `analyze` for phase0. Captured Nsight Systems 2024.4.1 traces for all 6 workload×variant combos (WSL2 timestamp workaround applied) and wrote `docs/benchmarks/phase0-baseline.md` with absolute times, CIs, and bottleneck analysis. `./scripts/check.sh` passes (123 tests). T5 checked off; sprint `needs_validation`. |
-| 2026-08-11 | S02 executor (P0), T4 complete | Implemented B1 variants for all 3 workloads: `torch.compile(mode=default)` on models + `cudf.pandas` where applicable. Added `_compile_env.py` for pip-wheel nvcc PATH setup, `nvidia-cuda-nvcc==13.0.88` dep. Extended harness `_float_key` for `"float"` tolerance key. All 6 workload×variant combos pass `cobra-bench verify`; `./scripts/check.sh` passes (123 tests). T4 checked off; next is T5. |
 
 ## Notes for the next session
 
 - S02 is merged to `main` and done; all tasks T0-T5 accepted.
-- S03 is the active sprint (`sprint/S03-disposable-tracer`). Create the branch
-  from `main` if it does not exist; next prompt is `P0-execute.md`.
+- S03 is the active sprint (`sprint/S03-disposable-tracer`, branch exists).
+  T1 (call-boundary recorder) is done — see `experimental/tracer/` and its
+  README for the schema/usage. Next: T2 (dependency DAG builder) using the
+  `input_handles`/`output_handles` already on every `Event`; then T3
+  (critical path/parallelism reports) and T4 (findings memo). Next prompt
+  is `P0-execute.md`.
 - Baseline artifacts are on `main`:
   - `docs/benchmarks/phase0-baseline.md` — absolute times, CIs, bottleneck analysis.
   - `artifacts/raw/phase0/samples.jsonl` — 180 warm samples (30 per workload×variant).
