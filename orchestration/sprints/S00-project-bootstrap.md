@@ -140,3 +140,17 @@ Rescued the entire uncommitted WIP to `rescue/S00-2026-08-11` and reset the
 sprint branch to a44e1e0. `scripts/cobra_orca_loop.py` was being mutated in the
 background during recovery; the rescue branch captures the latest state. Sprint
 remains `needs_validation`. Next: run P1-validate.md in a fresh session. -->
+<!-- [2026-08-11][Validator] Validation reopened. All automated validation
+commands pass (`uv sync`, `./scripts/check.sh`, 80 READMEs tracked, import smoke
+green). Acceptance audit found one defect:
+
+1. LICENSE is not the verbatim canonical text from https://llvm.org/LICENSE.txt.
+   Reproduction: `curl -sL https://llvm.org/LICENSE.txt -o /tmp/llvm.txt &&
+   diff -u /tmp/llvm.txt LICENSE`. Expected: at most a project-name header
+   substitution; actual: ~50 lines of the canonical text are missing or
+   reformatted, including the legacy NCSA license block and the detailed
+   third-party-software identification section. This exceeds the trivial-fix
+   threshold and touches legal text, so it was not repaired by the Validator.
+
+Reopening to fix T1. Next: run P0-execute.md to repair LICENSE, then re-run
+P1-validate.md. -->
