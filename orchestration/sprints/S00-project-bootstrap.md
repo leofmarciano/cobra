@@ -44,7 +44,7 @@ drafted semantic charter. No compiler code.
   verbatim, no placeholder remains except a flagged security email.
 
 ### T2 — Repository skeleton (§16.1)
-- [ ] Do: Create the §16.1 directory tree (`cmake/ docs/ include/cobra/
+- [x] Do: Create the §16.1 directory tree (`cmake/ docs/ include/cobra/
   lib/ python/cobra_compiler/ runtime/ tools/ test/ benchmarks/ examples/
   docker/ scripts/ .github/workflows/` with the listed subdirectories),
   each holding a one-paragraph `README.md` stating its purpose per the
@@ -120,3 +120,7 @@ automation to begin S00. -->
 <!-- [2026-08-10][Devin] Human request: created 30 GitHub issues (#1-#30) for
 S00-S29, added labels `sprint`/`milestone-M*`/`gate`, and linked them from every
 sprint file and from the ROADMAP ledger. -->
+<!-- [2026-08-11][Subagent] Completed S00-T2: created the full §16.1 repository
+skeleton with README.md in every directory, plus root .gitignore and
+.editorconfig. Verified 80 directory READMEs created; one pre-existing root
+README.md also present (81 total). STATE.md advanced to in_progress/T3. -->

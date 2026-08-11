@@ -11,8 +11,8 @@
 |---|---|
 | Milestone | M0 — Thesis validation |
 | Active sprint | S00 — Project bootstrap (`orchestration/sprints/S00-project-bootstrap.md`) |
-| Sprint status | `not_started` |
-| Current task | T1 |
+| Sprint status | `in_progress` |
+| Current task | T3 |
 | Branch | `main` (create `sprint/S00-project-bootstrap` at BOOT) |
 | Next action | Open a fresh session, paste `orchestration/prompts/P0-execute.md` |
 
