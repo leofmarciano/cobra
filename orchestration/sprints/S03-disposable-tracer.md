@@ -53,30 +53,29 @@ compiler exists. **This code is explicitly disposable** — it lives in
   mutation-forces-ordering.
 
 ### T3 — Critical path & parallelism analysis
-- [ ] Do: from recorded wall times: critical-path length, total work,
+- [x] Do: from recorded wall times: critical-path length, total work,
   max theoretical speedup (work/span), device residency timeline
   (which values bounce host↔device and when), transfer count estimate.
   Emit `experimental/tracer/reports/<workload>.md` + rendered DAG.
-- Accept: three workload reports exist with: span/work ratio, top-5
+- [x] Accept: three workload reports exist with: span/work ratio, top-5
   critical-path ops, observed transfer boundaries, and candidate
   parallel regions (named).
 
 ### T4 — Findings memo
-- [ ] Do: `docs/benchmarks/phase0-tracer-findings.md` — for each
+- [x] Do: `docs/benchmarks/phase0-tracer-findings.md` — for each
   workload: the 2-3 concrete optimization opportunities visible in the
   DAG (e.g., "branches A/B independent: 41% span reduction if
   overlapped"; "df→tensor crosses host needlessly"). Explicitly mark
   which opportunities a tensor-only compiler (torch.compile alone)
   CANNOT see — this feeds the S05 gate criterion.
-- Accept: memo lists ≥2 cross-library opportunities total, each with a
+- [x] Accept: memo lists ≥2 cross-library opportunities total, each with a
   quantified estimate from trace data.
 
 ## Validation
 
 ```bash
 uv run pytest experimental/tracer -q
-uv run python -m tracer.run --workload parquet_feature_inference \
-  --out experimental/tracer/reports/
+uv run python -m tracer.run --workload all --out experimental/tracer/reports/
 ls experimental/tracer/reports/*.md | wc -l   # == 3
 test -f docs/benchmarks/phase0-tracer-findings.md
 ./scripts/check.sh
@@ -84,10 +83,10 @@ test -f docs/benchmarks/phase0-tracer-findings.md
 
 ## Definition of Done
 
-- [ ] All tasks accepted; three reports + findings memo committed
-- [ ] `experimental/tracer/README.md` opens with "DISPOSABLE — not
+- [x] All tasks accepted; three reports + findings memo committed
+- [x] `experimental/tracer/README.md` opens with "DISPOSABLE — not
       release code" (plan §18.4)
-- [ ] STATE.md + Session log updated; committed on sprint branch
+- [x] STATE.md + Session log updated; committed on sprint branch
 
 ## Handoff to next sprint
 
@@ -143,3 +142,25 @@ the JSON schema documented in the tracer README.
   passes 26 tests (`uv run pytest experimental/tracer -q`); `./scripts/check.sh`
   passes. Next: T3 (critical path / parallelism analysis + reports for the
   three workloads). Sprint remains `in_progress`.
+
+- [2026-08-11][executor P0] T3 and T4 done. Added
+  `experimental/tracer/src/tracer/analysis.py` (`analyze`) computing critical
+  path, total work, max theoretical speedup (work/span), top-5 critical-path
+  ops, explicit host/device transfer boundaries, coarse CPU/GPU device
+  residency timeline, and candidate fork/join parallel regions. Added
+  `experimental/tracer/src/tracer/reports.py` and `tracer/run.py` to generate
+  Markdown + Graphviz DOT reports per workload from a single CLI invocation,
+  and `experimental/tracer/tests/test_analysis.py` with 8 unit tests.
+  Generated `experimental/tracer/reports/{parquet_feature_inference,
+  model_ensemble,cv_preprocess_inference_postprocess}.{md,dot}` and the
+  findings memo `docs/benchmarks/phase0-tracer-findings.md`. Key observations:
+  parquet feature-to-GPU transfer dominates its critical path (~50 %);
+  model_ensemble has a named fork/join parallel region between the two
+  independent branches (~12–17 % span-reduction opportunity); CV shows a clean
+  CPU-preprocess → GPU-inference → CPU-postprocess phase boundary and ~44 ms
+  of per-weight host→device transfers inside resnet18. Updated tracer README
+  with analysis/CLI usage. Adjusted the sprint Validation block to use
+  `--workload all` so the report-count check is internally consistent.
+  Validation commands pass: 34 tracer tests, 3 reports, findings memo exists,
+  `./scripts/check.sh` passes. Sprint now `needs_validation`; next prompt is
+  P1 (Validator).

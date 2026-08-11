@@ -73,6 +73,38 @@ print(to_json(dag))
 print(to_dot(dag))
 ```
 
+## Critical-path / parallelism analysis (S03-T3)
+
+```python
+from tracer import analyze
+
+metrics = analyze(dag)
+print(metrics["critical_path_ns"], metrics["max_speedup"])
+print(metrics["top5_critical_ops"])
+print(metrics["transfer_boundaries"])
+print(metrics["parallel_regions"])
+```
+
+Analysis returns:
+
+* `total_work_ns` — sum of recorded op durations.
+* `critical_path_ns` — longest dependency-path duration (span).
+* `max_speedup` — work / span.
+* `top5_critical_ops` — five largest contributors on the critical path.
+* `transfer_boundaries` — explicit host/device `.to`/`.cpu`/`.cuda`/`from_numpy` events.
+* `device_timeline` — coarse CPU/GPU phase transition points.
+* `parallel_regions` — fork/join subgraphs where independent branches could overlap.
+
+## Generating workload reports
+
+```bash
+uv run python -m tracer.run --workload all --out experimental/tracer/reports/
+```
+
+This traces the three Phase 0 workloads, writes a Markdown report and a
+Graphviz DOT file per workload, and produces the findings memo at
+`docs/benchmarks/phase0-tracer-findings.md`.
+
 ## JSON schema (S10 handoff note)
 
 `tracer.dag` (S03-T2) exports the recorded events plus dependency edges as
