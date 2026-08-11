@@ -32,7 +32,7 @@ drafted semantic charter. No compiler code.
 ## Tasks
 
 ### T1 — Governance documents
-- [ ] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
+- [x] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
   fetch canonical text from llvm.org/LICENSE.txt), `NOTICE`,
   `CONTRIBUTING.md` (DCO 1.1 quoted in full + sign-off requirement +
   pointer to orchestration loop), `CODE_OF_CONDUCT.md` (Contributor
