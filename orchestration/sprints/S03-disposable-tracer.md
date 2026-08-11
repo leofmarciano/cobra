@@ -164,3 +164,14 @@ the JSON schema documented in the tracer README.
   Validation commands pass: 34 tracer tests, 3 reports, findings memo exists,
   `./scripts/check.sh` passes. Sprint now `needs_validation`; next prompt is
   P1 (Validator).
+
+- [2026-08-11][executor PR #45 follow-up] Resolved the PR review and failing CI
+  findings. Added regression tests and fixes for exact integer leaves, baseline
+  reuse during verification, per-workload correctness tolerances, deterministic
+  fixed warmup, cuDF subprocess isolation, nested handles, read-before-write
+  ordering, earliest common joins, exclusive branch-work accounting, pandas
+  and torch-to-NumPy boundaries, and CUDA completion timing. Formatted the
+  committed correctness artifact, regenerated tracer reports and the findings
+  memo, and removed unsupported empty-C++/CodeQL upload paths from CI.
+  Validation passes: `./scripts/check.sh --ci`, 41 tracer tests, and 17
+  pipeline tests. Sprint remains `needs_validation`; next prompt is P1.
