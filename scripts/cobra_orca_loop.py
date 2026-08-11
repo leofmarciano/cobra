@@ -223,9 +223,17 @@ sprint Session log, commit, and send worker_done.
     return header + canonical
 
 
+def _orca_bin() -> str:
+    """Resolve the Orca executable per the documented precedence."""
+    env = os.environ.get("ORCA_CLI_COMMAND") or os.environ.get("ORCA")
+    if env:
+        return env
+    return "orca"
+
+
 def _orca_json(*args: str) -> dict[str, Any]:
     """Run an orca command with --json and return the parsed result object."""
-    cmd = ["orca", *args, "--json"]
+    cmd = [_orca_bin(), *args, "--json"]
     proc = subprocess.run(
         cmd,
         capture_output=True,
