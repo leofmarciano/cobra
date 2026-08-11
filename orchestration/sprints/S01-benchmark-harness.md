@@ -42,7 +42,7 @@ bootstrap statistics, and correctness-gated measurement.
   manifest in `benchmarks/suites/example.yaml` round-trips.
 
 ### T2 — Machine metadata collector (`cobra-bench doctor`)
-- [ ] Do: capture OS/kernel/CPU/NUMA/RAM; GPU via `nvidia-smi` (name,
+- [x] Do: capture OS/kernel/CPU/NUMA/RAM; GPU via `nvidia-smi` (name,
   driver, clocks policy, power limit, persistence, MIG) when present;
   Python/framework versions via importlib. Output
   `artifacts/environment.json`. `--strict` fails when required fields are

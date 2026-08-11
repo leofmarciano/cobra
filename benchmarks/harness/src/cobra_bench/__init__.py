@@ -5,6 +5,14 @@ Python callable, and is designed to outlive any particular compiler
 prototype.
 """
 
+from cobra_bench.doctor import (
+    EnvironmentReport,
+    collect_gpu_info,
+    collect_host_info,
+    collect_software_info,
+    run_doctor,
+    validate_strict,
+)
 from cobra_bench.manifest import (
     BenchmarkManifest,
     CorrectnessInfo,
@@ -24,6 +32,7 @@ __all__ = [
     "BenchmarkManifest",
     "CorrectnessInfo",
     "CudaInfo",
+    "EnvironmentReport",
     "HostInfo",
     "ManifestError",
     "ProtocolInfo",
@@ -31,5 +40,10 @@ __all__ = [
     "VariantSpec",
     "WorkloadSpec",
     "__version__",
+    "collect_gpu_info",
+    "collect_host_info",
+    "collect_software_info",
     "load_manifest",
+    "run_doctor",
+    "validate_strict",
 ]
