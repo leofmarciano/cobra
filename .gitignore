@@ -19,6 +19,10 @@ out/
 
 # Python
 __pycache__/
+package.json
+package-lock.json
+
+node_modules/
 *.py[cod]
 *$py.class
 *.so

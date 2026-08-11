@@ -12,7 +12,6 @@ the issue number back into the sprint header and the ROADMAP ledger.
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -68,9 +67,7 @@ def run_gh(*args: str) -> str:
     cmd = ["gh", *args]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"gh command failed: {' '.join(cmd)}\n{proc.stderr.strip()}"
-        )
+        raise RuntimeError(f"gh command failed: {' '.join(cmd)}\n{proc.stderr.strip()}")
     return proc.stdout.strip()
 
 
@@ -81,10 +78,14 @@ def create_issue(title: str, body: str, labels: list[str]) -> int:
 
     label_arg = ",".join(labels)
     url = run_gh(
-        "issue", "create",
-        "--title", title,
-        "--body-file", body_file,
-        "--label", label_arg,
+        "issue",
+        "create",
+        "--title",
+        title,
+        "--body-file",
+        body_file,
+        "--label",
+        label_arg,
     )
     # URL ends with /issues/<number>
     return int(url.rsplit("/", 1)[-1])
@@ -158,7 +159,9 @@ def main() -> int:
 
         body = issue_body(path, sprint_id)
         issue_num = create_issue(issue_title, body, labels)
-        print(f"  created issue #{issue_num}: https://github.com/{REMOTE_OWNER_REPO}/issues/{issue_num}")
+        print(
+            f"  created issue #{issue_num}: https://github.com/{REMOTE_OWNER_REPO}/issues/{issue_num}"
+        )
         update_sprint_file(path, issue_num)
         update_roadmap(sprint_id, issue_num)
         created.append((sprint_id, issue_num))

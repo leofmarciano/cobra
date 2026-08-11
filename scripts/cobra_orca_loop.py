@@ -29,14 +29,14 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import time
-import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -98,7 +98,7 @@ class LoopState:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _table_cells(line: str) -> list[str]:
@@ -219,9 +219,7 @@ def build_prompt(role: str, state: LoopState, sprint_file: Path | None) -> str:
         raise LoopError(f"Missing canonical prompt: {role_path}")
 
     canonical = role_path.read_text(encoding="utf-8")
-    sprint_file_ref = (
-        sprint_file.relative_to(REPO_ROOT) if sprint_file else state.active_sprint
-    )
+    sprint_file_ref = sprint_file.relative_to(REPO_ROOT) if sprint_file else state.active_sprint
 
     header = f"""# Cobra autonomous loop dispatch — {role_name(role)} ({role})
 
@@ -262,6 +260,7 @@ Autonomous-mode overrides (they refine, never replace, the canonical prompt):
 # Devin worker execution
 # ----------------------------------------------------------------------------
 
+
 def run_worker(
     role: str,
     prompt: str,
@@ -269,7 +268,7 @@ def run_worker(
 ) -> dict[str, Any]:
     """Run `devin --print` with the prompt; return outcome metadata."""
     LOG_DIR.mkdir(exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     log_path = LOG_DIR / f"{stamp}-{role}.log"
 
     cmd = [
@@ -327,6 +326,7 @@ def run_worker(
 # Git helpers
 # ----------------------------------------------------------------------------
 
+
 def _git(*argv: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", *argv], capture_output=True, text=True, cwd=REPO_ROOT, check=False
@@ -347,6 +347,7 @@ def git_head() -> str:
 # ----------------------------------------------------------------------------
 # Status file
 # ----------------------------------------------------------------------------
+
 
 def load_status(path: Path = STATUS_FILE) -> dict[str, Any]:
     if path.exists():
@@ -380,6 +381,7 @@ def remove_pid(pid_file: Path = PID_FILE) -> None:
 # ----------------------------------------------------------------------------
 # STATE.md fallback advancement (Validator normally does this)
 # ----------------------------------------------------------------------------
+
 
 def roadmap_sprint_ids() -> list[str]:
     ids: list[str] = []
@@ -428,9 +430,7 @@ def advance_to_next_sprint(state: LoopState) -> LoopState:
     try:
         current_idx = ids.index(state.sprint_id())
     except ValueError:
-        raise LoopError(
-            f"Active sprint {state.active_sprint} not found in ROADMAP ledger"
-        )
+        raise LoopError(f"Active sprint {state.active_sprint} not found in ROADMAP ledger")
     if current_idx + 1 >= len(ids):
         raise LoopError("All sprints complete — loop finished")
 
@@ -465,6 +465,7 @@ def advance_to_next_sprint(state: LoopState) -> LoopState:
 # Main cycle
 # ----------------------------------------------------------------------------
 
+
 def emit_result(kind: str, **fields: Any) -> None:
     """Print the standardized line the Orca supervisor reports to the operator."""
     detail = " ".join(f"{k}={v}" for k, v in fields.items())
@@ -480,10 +481,15 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     # Sprint already closed by the Validator but STATE not advanced: fallback.
     if state.sprint_status.lower() == "done":
         new_state = advance_to_next_sprint(state)
-        log_history(status, {
-            "time": _now_iso(), "event": "advanced_done_sprint",
-            "from": state.active_sprint, "to": new_state.active_sprint,
-        })
+        log_history(
+            status,
+            {
+                "time": _now_iso(),
+                "event": "advanced_done_sprint",
+                "from": state.active_sprint,
+                "to": new_state.active_sprint,
+            },
+        )
         emit_result("advanced", frm=state.sprint_id(), to=new_state.sprint_id())
         return "continue"
 
@@ -499,19 +505,24 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     if role is None:
         if state.is_gate():
             emit_result(
-                "human_required", reason="gate_decision",
+                "human_required",
+                reason="gate_decision",
                 sprint=state.sprint_id(),
                 detail="Gate report awaits a human go/narrow/stop in DECISIONS.md",
             )
         elif state.sprint_status.lower() == "blocked":
             emit_result(
-                "human_required", reason="blocked", sprint=state.sprint_id(),
+                "human_required",
+                reason="blocked",
+                sprint=state.sprint_id(),
                 blockers="; ".join(state.blockers) or "see STATE.md",
             )
         else:
             emit_result(
-                "human_required", reason="unrecognized_state",
-                sprint=state.sprint_id(), status=state.sprint_status,
+                "human_required",
+                reason="unrecognized_state",
+                sprint=state.sprint_id(),
+                status=state.sprint_status,
             )
         return "human"
 
@@ -522,24 +533,33 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     prompt = build_prompt(role, state, sprint_file)
 
     if args.dry_run:
-        print(f"[dry-run] would run devin as {role_name(role)} ({role}) "
-              f"for {state.active_sprint} [{state.sprint_status}]; "
-              f"prompt {len(prompt)} chars")
+        print(
+            f"[dry-run] would run devin as {role_name(role)} ({role}) "
+            f"for {state.active_sprint} [{state.sprint_status}]; "
+            f"prompt {len(prompt)} chars"
+        )
         return "continue"
 
     head_before = git_head()
     state_before = STATE_PATH.read_text(encoding="utf-8")
 
-    print(f"Dispatching {role_name(role)} ({role}) for {state.active_sprint} "
-          f"[{state.sprint_status}] via {args.devin_bin} --print ...")
+    print(
+        f"Dispatching {role_name(role)} ({role}) for {state.active_sprint} "
+        f"[{state.sprint_status}] via {args.devin_bin} --print ..."
+    )
     outcome = run_worker(role, prompt, args)
 
-    log_history(status, {
-        "time": _now_iso(), "event": "worker_finished", "role": role,
-        "active_sprint": state.active_sprint,
-        "sprint_status_before": state.sprint_status,
-        **{k: outcome[k] for k in ("returncode", "timed_out", "duration_min", "log")},
-    })
+    log_history(
+        status,
+        {
+            "time": _now_iso(),
+            "event": "worker_finished",
+            "role": role,
+            "active_sprint": state.active_sprint,
+            "sprint_status_before": state.sprint_status,
+            **{k: outcome[k] for k in ("returncode", "timed_out", "duration_min", "log")},
+        },
+    )
     save_status(status)
 
     # Classify progress from durable state, not from the worker's words.
@@ -551,15 +571,20 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     clean_after, dirty_after = git_is_clean()
     if outcome["timed_out"]:
         emit_result(
-            "worker_timeout", role=role, sprint=state.sprint_id(),
-            minutes=outcome["duration_min"], log=outcome["log"],
+            "worker_timeout",
+            role=role,
+            sprint=state.sprint_id(),
+            minutes=outcome["duration_min"],
+            log=outcome["log"],
         )
         # Dirty tree will route the NEXT cycle to P2 recovery automatically.
         return "continue" if not args.once else "human"
 
     if not clean_after:
-        print("Worker finished with a dirty tree (protocol violation); "
-              "next cycle will dispatch Recovery (P2).")
+        print(
+            "Worker finished with a dirty tree (protocol violation); "
+            "next cycle will dispatch Recovery (P2)."
+        )
         print(dirty_after)
 
     if not progressed:
@@ -569,13 +594,19 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
         save_status(status)
         if counts[key] >= MAX_NO_PROGRESS:
             emit_result(
-                "human_required", reason="no_progress", role=role,
-                sprint=state.sprint_id(), attempts=counts[key],
-                log=outcome["log"], tail=json.dumps(outcome["tail"][-400:]),
+                "human_required",
+                reason="no_progress",
+                role=role,
+                sprint=state.sprint_id(),
+                attempts=counts[key],
+                log=outcome["log"],
+                tail=json.dumps(outcome["tail"][-400:]),
             )
             return "human"
-        print(f"No observable progress (attempt {counts[key]}/{MAX_NO_PROGRESS}); "
-              "will retry next cycle.")
+        print(
+            f"No observable progress (attempt {counts[key]}/{MAX_NO_PROGRESS}); "
+            "will retry next cycle."
+        )
         return "continue"
 
     status.setdefault("no_progress", {}).pop(
@@ -583,8 +614,11 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     )
 
     emit_result(
-        "session_complete", role=role, sprint=new_state.sprint_id(),
-        status=new_state.sprint_status, duration_min=outcome["duration_min"],
+        "session_complete",
+        role=role,
+        sprint=new_state.sprint_id(),
+        status=new_state.sprint_status,
+        duration_min=outcome["duration_min"],
         commits=_git("rev-list", "--count", f"{head_before}..{head_after}").stdout.strip() or "0",
     )
 
@@ -594,7 +628,9 @@ def run_one_cycle(status: dict[str, Any], args: argparse.Namespace) -> str:
     ):
         reason = "gate_decision" if new_state.is_gate() else "blocked"
         emit_result(
-            "human_required", reason=reason, sprint=new_state.sprint_id(),
+            "human_required",
+            reason=reason,
+            sprint=new_state.sprint_id(),
             blockers="; ".join(new_state.blockers) or "see STATE.md",
         )
         return "human"
@@ -606,27 +642,53 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Autonomous Cobra sprint-loop harness (Devin workers).",
     )
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show what would be dispatched without running Devin.")
-    parser.add_argument("--once", action="store_true",
-                        help="Run a single worker session and exit.")
-    parser.add_argument("--max-cycles", type=int, default=100,
-                        help="Maximum dispatch cycles before stopping (default 100).")
-    parser.add_argument("--max-minutes", type=float, default=0,
-                        help="Maximum total runtime in minutes (0 = no limit).")
-    parser.add_argument("--wait-minutes", type=float, default=50,
-                        help="Per-worker time budget in minutes (default 50).")
-    parser.add_argument("--model", type=str, default=None,
-                        help="Optional model override passed to `devin --model`.")
-    parser.add_argument("--effort", type=str, default=None,
-                        help="Ignored (kept for automation-prompt compatibility).")
-    parser.add_argument("--permission-mode", type=str, default="dangerous",
-                        choices=["auto", "accept-edits", "smart", "dangerous"],
-                        help="Devin permission mode for workers (default: dangerous; "
-                             "required for unattended git/build/test commands).")
-    parser.add_argument("--devin-bin", type=str,
-                        default=os.environ.get("COBRA_DEVIN_BIN", "devin"),
-                        help="Devin CLI binary (default: devin, or $COBRA_DEVIN_BIN).")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be dispatched without running Devin.",
+    )
+    parser.add_argument("--once", action="store_true", help="Run a single worker session and exit.")
+    parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=100,
+        help="Maximum dispatch cycles before stopping (default 100).",
+    )
+    parser.add_argument(
+        "--max-minutes",
+        type=float,
+        default=0,
+        help="Maximum total runtime in minutes (0 = no limit).",
+    )
+    parser.add_argument(
+        "--wait-minutes",
+        type=float,
+        default=50,
+        help="Per-worker time budget in minutes (default 50).",
+    )
+    parser.add_argument(
+        "--model", type=str, default=None, help="Optional model override passed to `devin --model`."
+    )
+    parser.add_argument(
+        "--effort",
+        type=str,
+        default=None,
+        help="Ignored (kept for automation-prompt compatibility).",
+    )
+    parser.add_argument(
+        "--permission-mode",
+        type=str,
+        default="dangerous",
+        choices=["auto", "accept-edits", "smart", "dangerous"],
+        help="Devin permission mode for workers (default: dangerous; "
+        "required for unattended git/build/test commands).",
+    )
+    parser.add_argument(
+        "--devin-bin",
+        type=str,
+        default=os.environ.get("COBRA_DEVIN_BIN", "devin"),
+        help="Devin CLI binary (default: devin, or $COBRA_DEVIN_BIN).",
+    )
     parser.add_argument("--status-file", type=Path, default=STATUS_FILE)
     parser.add_argument("--pid-file", type=Path, default=PID_FILE)
     args = parser.parse_args(argv)

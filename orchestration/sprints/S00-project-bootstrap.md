@@ -85,7 +85,7 @@ drafted semantic charter. No compiler code.
 - Accept: charter contains all six areas with testable statements.
 
 ### T6 — Lint CI + repo hygiene
-- [ ] Do: `.github/workflows/lint.yml` — on PR/push: `uv sync`, `ruff
+- [x] Do: `.github/workflows/lint.yml` — on PR/push: `uv sync`, `ruff
   check`, `ruff format --check`, `mypy python/cobra_compiler`, `pytest`.
   Add `scripts/check.sh` running the same locally (per §34.1 spirit).
 - Accept: `./scripts/check.sh` passes locally; workflow YAML is valid
