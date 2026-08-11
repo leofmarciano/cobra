@@ -1,0 +1,18 @@
+release: "0.0.1.dev0"
+comment: |
+  Initial development compatibility matrix (v0). Native build targets and
+  framework pins will be added once the Linux GPU development host is
+  provisioned and the first CUDA smoke test is run.
+platforms:
+  - os: macos
+    arch: arm64
+    python: "3.13"
+    note: "CPU-only host for repository governance, Python packaging, and documentation."
+  - os: ubuntu-24.04
+    arch: x86_64
+    python: "3.13"
+    pytorch: "TBD"
+    cuda_toolkit: "TBD"
+    driver_minimum: "TBD"
+    gpu_families:
+      - TBD

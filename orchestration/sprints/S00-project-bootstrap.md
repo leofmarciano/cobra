@@ -1,0 +1,188 @@
+# S00 — Project bootstrap & governance
+
+| Field | Value |
+|---|---|
+| GitHub issue | #1 |
+| Milestone | M0 — Thesis validation |
+| Depends on | — |
+| Hardware | CPU-only |
+| Estimated sessions | 1-2 |
+| Plan sections | §16.1, §16.3, §26.1, §26.4, §29 (Days 1-10), §35 Epic 0 |
+
+## Objective
+
+Turn the empty repo into a governed, linted, CI-checked project skeleton
+matching the plan's repository layout — with governance docs, Python
+packaging under the `cobra-compiler` name, ADR infrastructure, and a
+drafted semantic charter. No compiler code.
+
+## Context budget (read ONLY these)
+
+1. `orchestration/STATE.md`, this file
+2. `COBRA_TECHNICAL_PLAN.md` §16.1 (repo layout), §16.3 (packaging names),
+   §26.1/§26.4 (license, DCO), §29 Days 1-10, §35 Epic 0
+3. For T5 only: §6.5 (fallback contract), §8.1/§8.3/§8.4 (effects,
+   exceptions, RNG) — the charter distills these.
+
+## Out of scope
+
+- CMake/C++/LLVM anything (S06). CI beyond lint+pytest (later sprints).
+- Publishing to PyPI, pushing to GitHub, trademark search (human tasks).
+
+## Tasks
+
+### T1 — Governance documents
+- [x] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
+  fetch canonical text from llvm.org/LICENSE.txt), `NOTICE`,
+  `CONTRIBUTING.md` (DCO 1.1 quoted in full + sign-off requirement +
+  pointer to orchestration loop), `CODE_OF_CONDUCT.md` (Contributor
+  Covenant 2.1), `GOVERNANCE.md` (draft: solo owner + AI executors, RFC
+  list from §25.3), `SECURITY.md` (private reporting; email comes from
+  STATE.md Human-input queue — if unanswered, use a placeholder and flag
+  it), `THIRD_PARTY_NOTICES.md` (empty table w/ §26.7 schema).
+- Accept: files exist, license text is verbatim-canonical, DCO text is
+  verbatim, no placeholder remains except a flagged security email.
+
+### T2 — Repository skeleton (§16.1)
+- [x] Do: Create the §16.1 directory tree (`cmake/ docs/ include/cobra/
+  lib/ python/cobra_compiler/ runtime/ tools/ test/ benchmarks/ examples/
+  docker/ scripts/ .github/workflows/` with the listed subdirectories),
+  each holding a one-paragraph `README.md` stating its purpose per the
+  plan. Add `.gitignore` (Python, C++, CMake, `build/`, `third_party/`,
+  `.cobra/cache/`, `artifacts/raw/` — but keep `artifacts/environment/`
+  and `artifacts/analysis/` trackable), `.editorconfig`.
+- Accept: tree matches §16.1 (git needs the READMEs to track dirs);
+  `.gitignore` keeps `uv.lock` tracked.
+
+### T3 — Python packaging
+- [x] Do: `pyproject.toml` — distribution `cobra-compiler`, import package
+  `python/cobra_compiler/` (src layout via tool config), Python pinned to
+  one minor version (choose current stable, record it in
+  `support-matrix.yaml` v0 per §15.2 example), dev deps: `ruff`, `mypy`,
+  `pytest`. Generate `uv.lock`. Add `python/cobra_compiler/__init__.py`
+  with `__version__ = "0.0.1.dev0"` and a trivial
+  `test/python/test_import.py`.
+- Accept: `uv sync && uv run pytest test/python` green;
+  `import cobra_compiler as cobra` works.
+
+### T4 — ADR infrastructure + founding ADRs
+- [x] Do: `docs/decisions/TEMPLATE.md` (context/decision/status/
+  consequences), then: ADR-0001 scope & non-goals (distill §2.5),
+  ADR-0002 architecture: CPython-hosted capture + MLIR, not a fork
+  (distill §4.2/§4.3 matrix), ADR-0003 license choice (§26.1-26.3),
+  ADR-0004 naming: dist `cobra-compiler`, import `cobra_compiler`, CLI
+  `cobra` (§16.3).
+- Accept: each ADR ≤1 page, status `accepted`, cites its plan sections.
+
+### T5 — Semantic charter DRAFT (ADR-0005)
+- [x] Do: `docs/decisions/ADR-0005-semantic-charter.md`, status `draft`
+  (frozen at S05 gate). Must state, in normative language: effect rules
+  (unknown = full barrier), fallback contract (the five "never silently"
+  items of §6.5), exception commit order (§8.3 policy 1-6), RNG modes
+  (§8.4), mutation/alias conservatism (§8.2 defaults), guard philosophy
+  (§6.4 policy). One page max — this is the contract every future sprint
+  tests against.
+- Accept: charter contains all six areas with testable statements.
+
+### T6 — Lint CI + repo hygiene
+- [x] Do: `.github/workflows/lint.yml` — on PR/push: `uv sync`, `ruff
+  check`, `ruff format --check`, `mypy python/cobra_compiler`, `pytest`.
+  Add `scripts/check.sh` running the same locally (per §34.1 spirit).
+- Accept: `./scripts/check.sh` passes locally; workflow YAML is valid
+  (`uvx --from yamllint yamllint` or equivalent).
+
+## Validation
+
+```bash
+uv sync
+./scripts/check.sh                     # ruff + mypy + pytest
+git ls-files | grep -c "README.md"     # skeleton dirs tracked
+uv run python -c "import cobra_compiler as cobra; print(cobra.__version__)"
+```
+
+## Definition of Done
+
+- [x] All tasks accepted; validation passes from a clean checkout
+- [x] No TODO/placeholder except flagged Human-input items
+- [x] STATE.md + Session log updated; committed on `sprint/S00-project-bootstrap`
+
+## Handoff to next sprint
+
+S01 builds the benchmark harness inside `benchmarks/harness/` using the
+packaging + lint infra from this sprint.
+
+## Session log (append-only)
+
+<!-- [2026-08-10][Devin] Out-of-scope (human request): added autonomous Orca
+loop harness scripts/cobra_orca_loop.py, wrapper, precheck, and README docs. No
+sprint tasks completed; S00 still not_started. Next: run P0 or enable the
+automation to begin S00. -->
+<!-- [2026-08-10][Devin] Human request: created 30 GitHub issues (#1-#30) for
+S00-S29, added labels `sprint`/`milestone-M*`/`gate`, and linked them from every
+sprint file and from the ROADMAP ledger. -->
+<!-- [2026-08-11][Subagent] Completed S00-T2: created the full §16.1 repository
+skeleton with README.md in every directory, plus root .gitignore and
+.editorconfig. Verified 80 directory READMEs created; one pre-existing root
+README.md also present (81 total). STATE.md advanced to in_progress/T3. -->
+<!-- [2026-08-11][Executor] Completed S00 T1–T6 in one session. T1 governance
+ docs added with a flagged security-email placeholder. T2 full repository
+ skeleton created; T3 Python packaging (cobra-compiler, Python 3.13, uv.lock)
+ and passing import smoke test; T4 ADR template + ADR-0001..0004; T5 draft
+ semantic charter ADR-0005; T6 lint CI workflow and scripts/check.sh. Fixed
+ pre-existing lint issues in the loop harness so the local check passes.
+ Validation commands all green; sprint status set to needs_validation. Next:
+ run P1-validate.md in a fresh session. -->
+<!-- [2026-08-11][Recovery] Dirty working tree on `sprint/S00-project-bootstrap`
+after a44e1e0 (uncommitted CI/npm tooling WIP: split workflows, package.json,
+biome/knip/pre-commit, yamllint, expanded scripts/check.sh, malformed SECURITY
+email edit). S00 validation commands pass on a44e1e0 from a clean checkout.
+Rescued the entire uncommitted WIP to `rescue/S00-2026-08-11` and reset the
+sprint branch to a44e1e0. `scripts/cobra_orca_loop.py` was being mutated in the
+background during recovery; the rescue branch captures the latest state. Sprint
+remains `needs_validation`. Next: run P1-validate.md in a fresh session. -->
+<!-- [2026-08-11][Validator] Validation reopened. All automated validation
+commands pass (`uv sync`, `./scripts/check.sh`, 80 READMEs tracked, import smoke
+green). Acceptance audit found one defect:
+
+1. LICENSE is not the verbatim canonical text from https://llvm.org/LICENSE.txt.
+   Reproduction: `curl -sL https://llvm.org/LICENSE.txt -o /tmp/llvm.txt &&
+   diff -u /tmp/llvm.txt LICENSE`. Expected: at most a project-name header
+   substitution; actual: ~50 lines of the canonical text are missing or
+   reformatted, including the legacy NCSA license block and the detailed
+   third-party-software identification section. This exceeds the trivial-fix
+   threshold and touches legal text, so it was not repaired by the Validator.
+
+Reopening to fix T1. Next: run P0-execute.md to repair LICENSE, then re-run
+P1-validate.md. -->
+<!-- [2026-08-11][Recovery] RECOVERY: dirty working tree found on
+`sprint/S00-project-bootstrap` at HEAD 6d53308, a second occurrence of the
+same anti-pattern as the earlier same-day recovery (see LEARNINGS.md): an
+executor session produced out-of-scope CI/npm tooling WIP (split GH
+workflows, CODEOWNERS, dependabot, PR template, markdownlint/yamllint
+configs, pre-commit, biome/knip, package.json + lockfile, scripts/ci/*,
+expanded scripts/check.sh, plus small lint cleanups to
+scripts/cobra_orca_loop.py) and left it uncommitted, without attempting the
+actual assigned task (T1: repair LICENSE). LICENSE was unchanged — still the
+non-canonical text flagged by the Validator. Verified 6d53308 still passes
+all S00 validation commands from a clean tree (`uv sync`, `./scripts/check.sh`,
+80 READMEs tracked, import smoke). Rescued the WIP verbatim to
+`rescue/S00-2026-08-11-0037` and reset the sprint branch to 6d53308 (no
+`git reset --hard` used — reset was via checkout after committing the WIP on
+the rescue branch, so no work was discarded). Sprint status remains
+`in_progress`, current task remains T1. Next: run P0-execute.md and actually
+perform the LICENSE fix before touching anything else. -->
+<!-- [2026-08-11][Executor] Repaired LICENSE to match the canonical text at
+https://llvm.org/LICENSE.txt with only the project-name header substituted
+(The Cobra Project). Verified `diff -u /tmp/llvm-canonical.txt LICENSE` shows
+exactly one line changed. All S00 validation commands pass (`uv sync`,
+`./scripts/check.sh`, 80 READMEs tracked, import smoke prints `0.0.1.dev0`).
+T1 checkbox checked. Sprint status set to `needs_validation`. Next: run
+`orchestration/prompts/P1-validate.md` in a fresh session. -->
+<!-- [2026-08-11][Validator] Validation passed. Reproduced all four validation
+commands from a clean checkout: `uv sync` green, `./scripts/check.sh` green,
+80 README.md files tracked, import smoke prints `0.0.1.dev0`. LICENSE verified
+verbatim against https://llvm.org/LICENSE.txt (one-line project-name
+substitution). Acceptance audit: T1-T6 and DoD satisfied. Anti-gaming check:
+no weakened/skipped tests, no hardcoded outputs, no `# type: ignore`, no
+undocumented TODOs. Merged `sprint/S00-project-bootstrap` into `main` with
+commit d5c14976c19e7548b3d30ffff26acd63f4669e27; GitHub issue #1 closed. Sprint done; S01 started. -->

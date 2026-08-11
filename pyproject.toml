@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cobra-compiler"
+version = "0.0.1.dev0"
+description = "AI-native whole-program Python compiler and heterogeneous parallel runtime"
+readme = "README.md"
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+requires-python = "==3.13.*"
+authors = [
+    { name = "The Cobra Project Authors" },
+]
+keywords = ["compiler", "python", "machine-learning", "gpu", "parallel"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Compilers",
+]
+
+[project.urls]
+Homepage = "https://github.com/leofmarciano/cobra"
+Repository = "https://github.com/leofmarciano/cobra"
+Issues = "https://github.com/leofmarciano/cobra/issues"
+Documentation = "https://github.com/leofmarciano/cobra/blob/main/docs/README.md"
+
+[project.optional-dependencies]
+native = []
+
+[project.scripts]
+cobra = "cobra_compiler.cli.main:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11,<0.12",
+    "mypy>=1.15,<1.16",
+    "pytest>=8.3,<9",
+    "yamllint>=1.35,<1.36",
+    "pre-commit>=4.0,<5",
+    "deptry>=0.25,<0.26",
+    "vulture>=2.14,<2.15",
+    "types-pyyaml>=6.0,<7",
+    "cobra-bench",
+]
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.workspace]
+members = ["benchmarks/harness"]
+
+[tool.uv.sources]
+cobra-bench = { workspace = true }
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["python"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "RET", # flake8-return
+    "RUF", # Ruff-specific rules
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.13"
+packages = ["cobra_compiler"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[tool.pytest.ini_options]
+testpaths = ["test/python"]
+python_files = ["test_*.py"]

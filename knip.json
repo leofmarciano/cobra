@@ -1,0 +1,48 @@
+{
+  "$schema": "https://unpkg.com/knip@5.50.0/schema-jsonc.json",
+  "entry": ["package.json"],
+  "project": ["**/*", "!node_modules/**", "!uv.lock", "!.git/**"],
+  "ignore": [
+    "COBRA_TECHNICAL_PLAN.md",
+    "orchestration/**",
+    "docs/**",
+    "test/**",
+    "python/**",
+    "lib/**",
+    "runtime/**",
+    "include/**",
+    "cmake/**",
+    "benchmarks/**",
+    "examples/**",
+    "tools/**",
+    "docker/**",
+    "scripts/**",
+    "artifacts/**",
+    "experimental/**"
+  ],
+  "ignoreBinaries": [
+    "uv",
+    "python3",
+    "ruff",
+    "mypy",
+    "pytest",
+    "biome",
+    "knip",
+    "markdownlint-cli2",
+    "yamllint",
+    "shellcheck",
+    "hadolint",
+    "editorconfig-checker",
+    "actionlint",
+    "deptry",
+    "vulture",
+    "pre-commit"
+  ],
+  "ignoreDependencies": [],
+  "workspaces": {
+    ".": {
+      "entry": ["package.json"],
+      "project": ["*.json", ".github/**/*", "scripts/ci/**/*"]
+    }
+  }
+}

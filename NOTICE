@@ -1,0 +1,11 @@
+Cobra
+Copyright 2026 The Cobra Project Authors
+
+Licensed under the Apache License, Version 2.0 with LLVM Exceptions
+(see LICENSE or https://llvm.org/LICENSE.txt for the full text).
+
+This project includes contributions made by AI agents acting under the
+direction of the project owner, as recorded in the project git history.
+
+Third-party components used by this project are listed in
+THIRD_PARTY_NOTICES.md.
