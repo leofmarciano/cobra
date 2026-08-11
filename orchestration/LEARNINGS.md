@@ -30,6 +30,11 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Loop & process
 
+- [2026-08-11][S00 validation] Legal or canonical text copied from a URL (e.g.,
+  `LICENSE`) must be verified with `diff -u` against the fetched source, not just
+  by inspection. A `LICENSE` passed all lint/tests but was missing ~50 lines of
+  the LLVM canonical text. Validator checklist: always diff canonical legal
+  documents on the first sprint that introduces them.
 - [2026-08-11][S00 recovery] RECURRED (2nd time same day): a P0 session
   reopened for a narrow, single-task fix (T1: repair `LICENSE`) instead
   produced unrelated, uncommitted CI/npm tooling (GH workflows, biome/knip,
