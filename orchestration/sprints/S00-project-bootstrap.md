@@ -112,4 +112,7 @@ packaging + lint infra from this sprint.
 
 ## Session log (append-only)
 
-<!-- [YYYY-MM-DD][session] done / next / surprises -->
+<!-- [2026-08-10][Devin] Out-of-scope (human request): added autonomous Orca
+loop harness scripts/cobra_orca_loop.py, wrapper, precheck, and README docs. No
+sprint tasks completed; S00 still not_started. Next: run P0 or enable the
+automation to begin S00. -->

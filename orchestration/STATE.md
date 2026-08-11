@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-10 — orchestration setup session (Devin)
+**Last updated:** 2026-08-10 — autonomous loop harness setup (Devin)
 
 ## Now
 
@@ -43,6 +43,7 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-10 | Autonomous loop harness (Devin) | Added scripts/cobra_orca_loop.py + wrapper/precheck; branch sprint/S00-project-bootstrap. Sprint S00 still not_started. |
 | 2026-08-10 | Orchestration setup (Devin) | Created loop docs, 30 sprint files, 5 prompts. No product code written. |
 
 ## Notes for the next session
@@ -53,3 +54,6 @@ Items an executor needs from the owner; answer by editing this list.
 - The plan's §36 approval record is pending; the S05 gate collects the
   formal sign-offs. Proceeding through M0 is explicitly authorized by the
   owner (2026-08-10).
+- Autonomous Orca loop harness added on branch `sprint/S00-project-bootstrap`
+  (`scripts/cobra_orca_loop.py`, wrapper, precheck). The active sprint is
+  still `not_started`; run P0 manually or enable the automation to begin S00.
