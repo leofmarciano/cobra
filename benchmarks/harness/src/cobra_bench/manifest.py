@@ -113,6 +113,7 @@ class WorkloadSpec:
 
     name: str
     variants: list[VariantSpec] = field(default_factory=list)
+    input_fingerprint: str | None = None
 
 
 @dataclass
@@ -344,6 +345,7 @@ def _build_workload(raw: Any, path: str, errors: list[str]) -> WorkloadSpec | No
     data = dict(raw)
     name = _pop_field(data, "name", str, path, errors, required=True)
     raw_variants = data.pop("variants", None)
+    input_fingerprint = _pop_field(data, "input_fingerprint", str, path, errors)
     variants: list[VariantSpec] = []
     if raw_variants is None:
         errors.append(f"{path}.variants: required field is missing")
@@ -357,7 +359,7 @@ def _build_workload(raw: Any, path: str, errors: list[str]) -> WorkloadSpec | No
     _reject_unknown(data, path, errors)
     if name is None:
         return None
-    return WorkloadSpec(name=name, variants=variants)
+    return WorkloadSpec(name=name, variants=variants, input_fingerprint=input_fingerprint)
 
 
 def manifest_from_dict(data: dict[str, Any], *, strict: bool = False) -> BenchmarkManifest:

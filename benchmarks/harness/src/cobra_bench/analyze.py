@@ -18,6 +18,7 @@ import sys
 from dataclasses import asdict
 from pathlib import Path
 
+from cobra_bench.guardrails import GuardrailError, apply_analysis_guardrails
 from cobra_bench.results import SampleRecord, read_jsonl, read_parquet
 from cobra_bench.stats import SuiteSummary, analyze_samples
 
@@ -162,13 +163,19 @@ def run_analyze(
     n_bootstrap: int = 10_000,
     seed: int | None = None,
     baseline_variant: str | None = None,
-) -> SuiteSummary:
+) -> SuiteSummary | None:
     """Load raw samples, analyze them, and write the artifact set."""
     input_path = Path(input_dir)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     records = _load_samples(input_path)
+    try:
+        apply_analysis_guardrails(records)
+    except GuardrailError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return None
+
     summary = analyze_samples(
         records,
         metric=metric,
@@ -237,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point for ``cobra-bench analyze``."""
     args = _parse_args(argv)
     try:
-        run_analyze(
+        result = run_analyze(
             args.input,
             args.output,
             metric=args.metric,
@@ -249,7 +256,7 @@ def main(argv: list[str] | None = None) -> int:
     except FileNotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    return 0
+    return 0 if result is not None else 1
 
 
 if __name__ == "__main__":  # pragma: no cover

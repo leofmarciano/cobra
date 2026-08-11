@@ -1,0 +1,128 @@
+"""Tests for workload invocation and sample collection (cobra_bench.runner)."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+from cobra_bench.manifest import BenchmarkManifest, ProtocolInfo, VariantSpec, WorkloadSpec
+from cobra_bench.runner import (
+    TimingOptions,
+    resolve_entrypoint,
+    run_and_record,
+    run_workload,
+    verify_workload,
+)
+
+
+def _example_manifest() -> BenchmarkManifest:
+    return BenchmarkManifest(
+        run_id="test-run",
+        suite="test-suite",
+        protocol=ProtocolInfo(minimum_samples=5),
+        workloads=[
+            WorkloadSpec(
+                name="dummy_add",
+                variants=[
+                    VariantSpec(name="a", entrypoint="cobra_bench.examples.dummy:variant_a"),
+                    VariantSpec(name="b", entrypoint="cobra_bench.examples.dummy:variant_b"),
+                ],
+            )
+        ],
+    )
+
+
+class TestResolveEntrypoint:
+    def test_resolves_existing_callable(self) -> None:
+        fn = resolve_entrypoint("cobra_bench.examples.dummy:variant_a")
+        assert fn() == 499500
+
+    def test_rejects_missing_module(self) -> None:
+        with pytest.raises(ValueError, match="cannot import module"):
+            resolve_entrypoint("no_such_module_12345:no_such")
+
+    def test_rejects_missing_callable(self) -> None:
+        with pytest.raises(ValueError, match="has no callable"):
+            resolve_entrypoint("cobra_bench.examples.dummy:no_such_callable")
+
+    def test_rejects_non_callable(self) -> None:
+        with pytest.raises(ValueError, match="non-callable"):
+            resolve_entrypoint("cobra_bench.examples.dummy:__doc__")
+
+    def test_rejects_invalid_format(self) -> None:
+        with pytest.raises(ValueError, match="module:callable"):
+            resolve_entrypoint("not_a_valid_entrypoint")
+
+
+class TestVerifyWorkload:
+    def test_passes_for_equivalent_dummy_variants(self) -> None:
+        workload = _example_manifest().workloads[0]
+        report = verify_workload(workload, ["a", "b"], comparator="exact")
+        assert report.passed is True
+        assert report.errors == []
+        assert report.results["a"] == report.results["b"] == 499500
+
+    def test_fails_when_variants_differ(self) -> None:
+        workload = WorkloadSpec(
+            name="mismatch",
+            variants=[
+                VariantSpec(name="a", entrypoint="cobra_bench.examples.dummy:variant_a"),
+                VariantSpec(name="bad", entrypoint="builtins:bool"),
+            ],
+        )
+        report = verify_workload(workload, ["a", "bad"], comparator="exact")
+        assert report.passed is False
+        assert any("baseline" in err for err in report.errors)
+
+
+class TestRunWorkload:
+    def test_warm_collects_expected_samples(self) -> None:
+        manifest = _example_manifest()
+        workload = manifest.workloads[0]
+        options = TimingOptions(phase="warm", min_samples=5, seed=42)
+        records = run_workload(manifest, workload, ["a", "b"], options)
+
+        a_records = [r for r in records if r.variant == "a"]
+        b_records = [r for r in records if r.variant == "b"]
+        assert len(a_records) >= 5
+        assert len(b_records) >= 5
+        assert all(r.phase == "warm" for r in records)
+        assert all(r.correct for r in records)
+        assert all(r.tags.get("input_fingerprint") == "dummy_add" for r in records)
+
+    def test_run_with_no_oracle_skips_correctness(self) -> None:
+        manifest = _example_manifest()
+        workload = manifest.workloads[0]
+        options = TimingOptions(phase="warm", min_samples=5, no_oracle=True)
+        records = run_workload(manifest, workload, ["a", "b"], options)
+        assert records
+        assert all(not r.correct for r in records)
+
+    def test_cold_without_no_oracle_raises(self) -> None:
+        manifest = _example_manifest()
+        workload = manifest.workloads[0]
+        options = TimingOptions(phase="cold", min_samples=2)
+        with pytest.raises(ValueError, match="no-oracle"):
+            run_workload(manifest, workload, ["a", "b"], options)
+
+
+class TestRunAndRecord:
+    def test_writes_jsonl_and_manifest_copy(self, tmp_path: Path) -> None:
+        manifest = _example_manifest()
+        output_dir = tmp_path / "raw"
+        options = TimingOptions(phase="warm", min_samples=5, seed=1)
+        records = run_and_record(
+            manifest,
+            {"dummy_add": ["a", "b"]},
+            options,
+            output_dir,
+        )
+        assert len(records) >= 10
+        assert (output_dir / "samples.jsonl").is_file()
+
+        # Sanity-check JSON-lines content.
+        lines = (output_dir / "samples.jsonl").read_text().strip().splitlines()
+        assert len(lines) == len(records)
+        first = json.loads(lines[0])
+        assert first["workload"] == "dummy_add"

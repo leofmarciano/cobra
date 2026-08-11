@@ -72,21 +72,21 @@ bootstrap statistics, and correctness-gated measurement.
   bounds match a reference implementation within tolerance.
 
 ### T5 — CLI assembly
-- [ ] Do: `cobra-bench` entry point with `doctor | verify | run |
+- [x] Do: `cobra-bench` entry point with `doctor | verify | run |
   analyze | compare` (§33 command shapes; `verify` runs oracles only,
   `compare` v0 = threshold check between two summary.json files).
   `--output` directory convention `artifacts/…` per runbook.
-- Accept: `cobra-bench run --suite benchmarks/suites/example.yaml
+- [x] Accept: `cobra-bench run --suite benchmarks/suites/example.yaml
   --variants a,b --phase warm` measures two dummy Python workloads
   end-to-end and `analyze` produces the artifact set.
 
 ### T6 — Anti-pattern guardrails
-- [ ] Do: encode §33.11 as automated checks where possible: refuse mixed
+- [x] Do: encode §33.11 as automated checks where possible: refuse mixed
   cold/warm comparison, refuse comparing variants with different input
   fingerprints, warn when sample count <30, refuse timing when the
   correctness hook is absent (must be explicit `--no-oracle` with a
   loud warning).
-- Accept: each guardrail has a unit test proving it triggers.
+- [x] Accept: each guardrail has a unit test proving it triggers.
 
 ## Validation
 
@@ -184,3 +184,29 @@ details into STATE.md Environment.
   `./scripts/check.sh` (green). T4 checked; sprint `in_progress`; next is
   T5 — CLI assembly (`doctor|verify|run|analyze|compare` and end-to-end
   `cobra-bench run` with the example suite).
+- [2026-08-11][S01 executor (P0), T5+T6] Done: implemented the full
+  `cobra-bench` CLI assembly and anti-pattern guardrails. Added
+  `cobra_bench.runner` (entrypoint resolution, correctness-oracle factory,
+  warm-path timing via `TimingEngine`, cold-path subprocess placeholder,
+  sample recording to JSON-lines), `cobra_bench.compare` (threshold-based
+  comparison of two `summary.json` files), and `cobra_bench.guardrails`
+  (refuse mixed cold/warm samples, refuse different input fingerprints per
+  workload, warn on sample count <30, and require explicit `--no-oracle` to
+  time without a correctness hook with a loud warning). Extended
+  `cobra_bench.cli` with `doctor`, `verify`, `run`, `analyze`, and `compare`
+  subcommands per §33 command shapes; `cobra_bench.manifest` now supports an
+  optional `workload.input_fingerprint` for guardrail checks, and
+  `cobra_bench.stats`/`analyze` propagate phase and fingerprint into
+  summaries. Added 34 new TDD tests across `test_runner.py`,
+  `test_guardrails.py`, and `test_cli.py`. Validation:
+  `uv run pytest benchmarks/harness -q` (120 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `uv run ruff check benchmarks/harness` and `ruff format --check` (clean),
+  `./scripts/check.sh` (green), and the sprint validation commands
+  (`doctor`, `run --phase warm`, `analyze`, `test -f summary.json`) all
+  succeed end-to-end. T5 and T6 checked; sprint ready for validation.
+  Surprises: the dummy `variant_b` is ~200x faster than `variant_a` on a
+  warm path because the closed-form sum finishes in sub-microsecond time,
+  confirming the harness is sensitive but also showing that a trivial
+  microbenchmark can produce extreme speedup ratios that should be
+  interpreted with care in public reports (§33.12 item 7).

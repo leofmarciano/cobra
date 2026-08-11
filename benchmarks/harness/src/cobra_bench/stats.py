@@ -167,6 +167,7 @@ class WorkloadSummary:
     baseline_variant: str
     variants: list[VariantStats]
     geomean_speedup: float | None
+    input_fingerprint: str | None = None
 
 
 @dataclass
@@ -179,6 +180,7 @@ class SuiteSummary:
     seed: int | None
     workloads: list[WorkloadSummary]
     suite_geomean_speedup: float | None
+    phase: str | None = None
 
 
 def _variant_speedup(
@@ -245,7 +247,23 @@ def analyze_samples(
             seed=seed,
             workloads=[],
             suite_geomean_speedup=None,
+            phase=None,
         )
+
+    phases = {r.phase for r in records if r.phase is not None}
+    common_phase = next(iter(phases)) if len(phases) == 1 else "mixed"
+
+    # Extract workload-level input fingerprint from sample tags when uniform.
+    workload_fingerprints: dict[str, str] = {}
+    for record in records:
+        fp = record.tags.get("input_fingerprint")
+        if fp is None:
+            continue
+        existing = workload_fingerprints.get(record.workload)
+        if existing is None:
+            workload_fingerprints[record.workload] = fp
+        elif existing != fp:
+            workload_fingerprints[record.workload] = "mixed"
 
     # Group records by workload, then variant.
     by_workload: dict[str, dict[str, list[SampleRecord]]] = defaultdict(lambda: defaultdict(list))
@@ -342,6 +360,7 @@ def analyze_samples(
                 baseline_variant=chosen_baseline,
                 variants=variant_stats_list,
                 geomean_speedup=geomean,
+                input_fingerprint=workload_fingerprints.get(workload),
             )
         )
 
@@ -354,4 +373,5 @@ def analyze_samples(
         seed=seed,
         workloads=workload_summaries,
         suite_geomean_speedup=suite_geomean,
+        phase=common_phase,
     )
