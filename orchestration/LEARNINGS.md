@@ -26,7 +26,14 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Benchmarking & measurement
 
-- (none yet)
+- [2026-08-11][S01] When hand-writing benchmark manifest/suite YAML,
+  quote any all-digit string field (commit SHAs, hashes) explicitly
+  (`commit: "0000...0"`), otherwise PyYAML's default loader parses it as
+  an `int` and schema validation rejects it as the wrong type.
+- [2026-08-11][S01] A hand-rolled dict-pop validator must still `pop()`
+  the key even when short-circuiting because the value is `None`/absent —
+  otherwise a later "reject unknown keys" pass reports a false-positive
+  "unknown field" for legitimately-null optional fields.
 
 ## Loop & process
 

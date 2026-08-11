@@ -33,7 +33,7 @@ bootstrap statistics, and correctness-gated measurement.
 ## Tasks
 
 ### T1 — Package + manifest schema
-- [ ] Do: `benchmarks/harness/` as installable module `cobra_bench`
+- [x] Do: `benchmarks/harness/` as installable module `cobra_bench`
   (wired into the uv workspace). Implement the §33.1 manifest as typed
   dataclasses + YAML loader with validation. Hand-entered fields must be
   explicitly marked `manual: true` and are rejected by default in strict
@@ -116,3 +116,36 @@ details into STATE.md Environment.
 ## Session log (append-only)
 
 <!-- [YYYY-MM-DD][session] done / next / surprises -->
+- [2026-08-11][S01 executor (P0), T1] Done: created `benchmarks/harness/`
+  as a `uv` workspace member package `cobra-bench` (src layout,
+  `pyproject.toml`, added to root `[tool.uv.workspace]` +
+  `[tool.uv.sources]`, and to the root dev dependency group so `uv sync`
+  installs it editable). Implemented `cobra_bench.manifest`: dataclasses
+  for the §33.1 manifest (host/cuda/software/protocol/correctness sections
+  + workload/variant lists), a hand-written field-level validator
+  (`manifest_from_dict`/`load_manifest`, raising `ManifestError` with all
+  problems collected, not just the first), `manifest_to_dict`/
+  `dump_manifest` for round-tripping, and strict-mode rejection of any
+  section marked `manual: true` per the §33.1 last paragraph. Added
+  `benchmarks/suites/example.yaml` (two dummy Python variants under
+  `cobra_bench.examples.dummy`, reusable by T5) and
+  `benchmarks/harness/tests/test_manifest.py` (11 cases: load, round-trip,
+  missing/wrong-type/unknown-field errors, multi-error aggregation,
+  manual/strict interaction, invalid entrypoint format, protocol
+  defaults) — written before the implementation (TDD). Added
+  `pyyaml` (harness runtime dep) and `types-pyyaml` (root dev dep, for
+  `mypy --strict` on `cobra_bench`, verified separately from `./scripts/check.sh`
+  since mypy in CI is currently scoped to `cobra_compiler` only). Recorded
+  in `orchestration/DECISIONS.md` (D-005).
+  Validation: `uv run pytest benchmarks/harness -q` (11 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `./scripts/check.sh` (all green).
+  Next: T2 — machine metadata collector (`cobra-bench doctor`).
+  Surprises: a naive dict-pop validator silently left `None`-valued keys
+  in the "remaining" dict, causing false "unknown field" errors on
+  legitimately-null optional fields (e.g. `container_digest: null`) —
+  fixed by always popping the key even when short-circuiting on `None`.
+  Also: PyYAML's default loader parses unquoted all-digit strings (e.g. a
+  40-char all-zero commit hash) as `int`; the example manifest now quotes
+  `commit`/`workload_commit` explicitly — worth a LEARNINGS note for
+  anyone hand-writing suite YAML with hash-like fields.

@@ -57,6 +57,22 @@ Format:
   run/task/mailbox provenance is not used; progress classification is
   file-based (STATE.md + git), which the loop was designed around.
 
+## D-005 — cobra-bench harness dependencies: pyyaml, types-pyyaml
+
+- Date / by: 2026-08-11 / S01 executor (P0), T1
+- Context: S01 T1 requires a YAML manifest loader for `cobra_bench`
+  (plan §33.1 explicitly lists `pyyaml` under captured `software:`
+  versions, and the harness needs a YAML parser to implement it).
+- Decision: Added `pyyaml>=6.0.3,<7` as a runtime dependency of the new
+  `cobra-bench` workspace package (`benchmarks/harness/pyproject.toml`),
+  and `types-pyyaml>=6.0,<7` as a root dev-group dependency for `mypy
+  --strict` on `cobra_bench`. Both are long-published, widely used
+  packages (PyYAML 6.0.3 already appears transitively via `pre-commit`/
+  `deptry` in the existing lockfile).
+- Consequences: `uv sync` now installs pyyaml/types-pyyaml. Future T4 will
+  similarly need to add `pyarrow` (already named explicitly in the S01
+  sprint file) — record that addition here when it lands.
+
 ## D-003 — Pending formal approvals (plan §36)
 
 - Date / by: 2026-08-10 / setup session
