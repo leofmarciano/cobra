@@ -55,7 +55,7 @@ drafted semantic charter. No compiler code.
   `.gitignore` keeps `uv.lock` tracked.
 
 ### T3 — Python packaging
-- [ ] Do: `pyproject.toml` — distribution `cobra-compiler`, import package
+- [x] Do: `pyproject.toml` — distribution `cobra-compiler`, import package
   `python/cobra_compiler/` (src layout via tool config), Python pinned to
   one minor version (choose current stable, record it in
   `support-matrix.yaml` v0 per §15.2 example), dev deps: `ruff`, `mypy`,
