@@ -57,3 +57,5 @@ Items an executor needs from the owner; answer by editing this list.
 - Autonomous Orca loop harness added on branch `sprint/S00-project-bootstrap`
   (`scripts/cobra_orca_loop.py`, wrapper, precheck). The active sprint is
   still `not_started`; run P0 manually or enable the automation to begin S00.
+- Orca automation registered: `Cobra Autonomous Sprint Loop`
+  (id `9bc2f963-7a94-46a7-b870-f23f3523cd43`), hourly trigger, enabled.
