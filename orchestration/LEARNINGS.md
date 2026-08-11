@@ -32,9 +32,12 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 - [2026-08-11][review] Orca `orchestration worker-start --agent` accepts only
   claude/codex — Devin workers must be spawned as `devin -p` subprocesses.
-- [2026-08-11][review] The standalone Devin CLI has its own auth
-  (`~/.local/share/devin/credentials.toml`), separate from the Devin app.
-  Headless `devin -p` fails with "Not logged in" until `devin auth login`.
+- [2026-08-11][review] ~~Headless `devin -p` fails with "Not logged in"
+  until `devin auth login`.~~ Superseded same day: credentials exist and the
+  Orca automation environment authenticates fine (owner-verified). The
+  failure only reproduces inside IDE-sandboxed agent shells, which cannot
+  read `~/.local/share/devin/credentials.toml`. Do NOT treat sandboxed-shell
+  auth checks as evidence about the automation environment.
 - [2026-08-11][review] Orca `orchestration check --wait` REPLAYS the same
   unacknowledged batch until `--ack <delivery_id>` — polling without ack
   reads stale worker_done messages forever. (Moot now, but recorded.)

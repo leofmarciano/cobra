@@ -24,9 +24,9 @@
 
 Items an executor needs from the owner; answer by editing this list.
 
-- [ ] **BLOCKS AUTONOMOUS LOOP:** run `devin auth login` once in a terminal —
-      the standalone Devin CLI is not authenticated (`devin auth status` says
-      "Not logged in"), so headless workers (`devin -p`) cannot start.
+- [x] ~~Run `devin auth login`~~ — resolved 2026-08-11: owner confirmed the
+      Orca automation environment authenticates fine; the "Not logged in"
+      was an artifact of a sandboxed review shell only. Not a blocker.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
 - [ ] Linux + NVIDIA GPU host details (hostname/access, GPU model, driver,
       CUDA toolkit) — needed no later than S02. Owner confirmed hardware
