@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #8 |
 | Milestone | M1 — Compiler skeleton |
 | Depends on | S06 (done) |
 | Hardware | CPU-only |

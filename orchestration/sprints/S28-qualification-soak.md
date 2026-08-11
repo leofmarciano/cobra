@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #29 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S24, S25, S27 (done) |
 | Hardware | **NVIDIA GPU required** (frozen bench host, multi-day) |

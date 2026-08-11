@@ -46,7 +46,11 @@ missing checkbox). Anything larger is a defect — do not fix it.
 4. Append durable lessons to LEARNINGS.md; if a future sprint file needs
  updating because of something learned here, say so explicitly in your
  summary (the operator will run P4-replan).
-5. Commit `S<NN>: close sprint`, and summarize: what was validated, what
+5. If the sprint file has a `GitHub issue` row and `gh auth status`
+ succeeds: `gh issue close <N> --comment "Validated and merged: <merge
+ commit sha>"`. Skip silently if gh is unavailable — never block closure
+ on it.
+6. Commit `S<NN>: close sprint`, and summarize: what was validated, what
  comes next, exact next prompt to run.
 
 ## Outcome B — FAIL (any defect)

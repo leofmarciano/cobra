@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #30 |
 | Milestone | M4 — v0.1 hardening & release (closes it) |
 | Depends on | S28 (done) |
 | Hardware | none (review; verification re-runs allowed) |

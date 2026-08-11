@@ -42,6 +42,43 @@ orchestration/
 4. Lost/confused state → `orchestration/prompts/P2-recovery.md`.
    Roadmap changes → `orchestration/prompts/P4-replan.md`.
 
+## Autonomous loop (Orca)
+
+The repo also ships an optional harness that drives the sprint loop via
+Orca without manual copy-paste. It reads `orchestration/STATE.md`, dispatches
+the right role (Executor/Validator/Gatekeeper/Recovery/Replanner) into a fresh
+AI worker, waits for completion, and repeats until all sprints are closed,
+a blocker appears, or a gate needs human sign-off.
+
+Files:
+
+- `scripts/cobra_orca_loop.py` — coordinator state machine
+- `scripts/cobra_orca_loop.sh` — convenience wrapper
+- `scripts/loop_precheck.sh` — overlap guard for the Orca automation
+
+Local dry-run:
+
+```bash
+./scripts/cobra_orca_loop.sh --dry-run --once
+```
+
+Create the hourly automation once:
+
+```bash
+orca automations create \
+  --name "Cobra Autonomous Sprint Loop" \
+  --trigger "0 * * * *" \
+  --prompt "Run the Cobra autonomous sprint-loop harness for one cycle. Do not edit source files yourself. Execute: /Users/marciano/Projects/Cobra/scripts/cobra_orca_loop.sh --once --wait-minutes 50 --max-minutes 55. Read its output, report any blocker, gate, or question to the operator, and stop if it reports a human decision is required." \
+  --provider devin \
+  --workspace path:/Users/marciano/Projects/Cobra \
+  --precheck /Users/marciano/Projects/Cobra/scripts/loop_precheck.sh \
+  --enabled
+```
+
+The harness follows the same rules as the manual loop: one active sprint at a
+time, fresh worker sessions per role, recovery on dirty git state, and explicit
+human decisions at S05 / S21 / S29 gates.
+
 Milestones: **M0** thesis validation (benchmarks first, day-30 kill
 gate) → **M1** compiler skeleton (MLIR dialects, capture, guards,
 fallback) → **M2** native runtime + CUDA scheduler → **M3** framework

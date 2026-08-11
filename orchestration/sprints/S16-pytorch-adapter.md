@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #17 |
 | Milestone | M3 — Integration & evidence |
 | Depends on | S12, S14 (done) |
 | Hardware | **NVIDIA GPU required** |

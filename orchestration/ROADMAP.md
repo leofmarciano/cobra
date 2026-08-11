@@ -34,36 +34,36 @@ M1 ≈ days 31-60 (Phase 1 + start of Phase 2). M2 = days 61-75. M3 = days
 
 | ID | Title | Depends on | Hardware | Status | Validated |
 |---|---|---|---|---|---|
-| S00 | Project bootstrap & governance | — | CPU | not_started | — |
-| S01 | Benchmark harness (cobra-bench v0) | S00 | CPU | not_started | — |
-| S02 | Baseline workloads & B0/B1 report | S01 | **GPU** | not_started | — |
-| S03 | Disposable whole-program tracer | S02 | **GPU** | not_started | — |
-| S04 | CUDA experiments A/B/C | S03 | **GPU** | not_started | — |
-| S05 | **GATE: day-30 go/narrow/stop** | S04 | — | not_started | — |
-| S06 | Toolchain pinning & dev container | S05=go | CPU | not_started | — |
-| S07 | MLIR dialect skeleton (CobraProgram/Effect) | S06 | CPU | not_started | — |
-| S08 | Native runtime core (CPU) | S06 | CPU | not_started | — |
-| S09 | Python extension & first capture | S07,S08 | CPU | not_started | — |
-| S10 | Trace→IR lowering, explain v0, parser fuzz | S09 | CPU | not_started | — |
-| S11 | Guards & specialization cache | S09 | CPU | not_started | — |
-| S12 | Graph breaks, fallback contract, shadow mode | S11 | CPU | not_started | — |
-| S13 | DAG scheduler + virtual-clock simulation | S08 | CPU | not_started | — |
-| S14 | CUDA runtime (streams/events/memory) | S13 | **GPU** | not_started | — |
-| S15 | Scheduler overhead benchmarks & granularity | S14 | **GPU** | not_started | — |
-| S16 | PyTorch adapter (torch.compile bridge) | S12,S14 | **GPU** | not_started | — |
-| S17 | Dataframe adapter (pandas/cuDF/Arrow) | S16 | **GPU** | not_started | — |
-| S18 | DLPack handoff & memory ownership | S16,S17 | **GPU** | not_started | — |
-| S19 | Cost model v0, profitability gate, CUDA Graphs | S15,S18 | **GPU** | not_started | — |
-| S20 | Day-90 evidence package (B0-B3) | S19 | **GPU** | not_started | — |
-| S21 | **GATE: day-90 go/narrow/stop** | S20 | — | not_started | — |
-| S22 | Effect & alias analysis hardening | S21=go | **GPU** | not_started | — |
-| S23 | Optimizer passes (parallelize/fuse/place) | S22 | **GPU** | not_started | — |
-| S24 | 50-program corpus, property & metamorphic tests | S23 | **GPU** | not_started | — |
-| S25 | Fuzzing, sanitizers, failure injection | S24 | **GPU** | not_started | — |
-| S26 | CLI & developer experience (explain/doctor/docs) | S23 | CPU | not_started | — |
-| S27 | Packaging, wheels, SBOM | S26 | CPU | not_started | — |
-| S28 | v0.1 qualification (soak + benchmark gates) | S24,S25,S27 | **GPU** | not_started | — |
-| S29 | **GATE: v0.1 release review** | S28 | — | not_started | — |
+| S00 | [Project bootstrap & governance](#1) | — | CPU | not_started | — |
+| S01 | [Benchmark harness (cobra-bench v0)](#2) | S00 | CPU | not_started | — |
+| S02 | [Baseline workloads & B0/B1 report](#3) | S01 | **GPU** | not_started | — |
+| S03 | [Disposable whole-program tracer](#4) | S02 | **GPU** | not_started | — |
+| S04 | [CUDA experiments A/B/C](#5) | S03 | **GPU** | not_started | — |
+| S05 | [**GATE: day-30 go/narrow/stop**](#6) | S04 | — | not_started | — |
+| S06 | [Toolchain pinning & dev container](#7) | S05=go | CPU | not_started | — |
+| S07 | [MLIR dialect skeleton (CobraProgram/Effect)](#8) | S06 | CPU | not_started | — |
+| S08 | [Native runtime core (CPU)](#9) | S06 | CPU | not_started | — |
+| S09 | [Python extension & first capture](#10) | S07,S08 | CPU | not_started | — |
+| S10 | [Trace→IR lowering, explain v0, parser fuzz](#11) | S09 | CPU | not_started | — |
+| S11 | [Guards & specialization cache](#12) | S09 | CPU | not_started | — |
+| S12 | [Graph breaks, fallback contract, shadow mode](#13) | S11 | CPU | not_started | — |
+| S13 | [DAG scheduler + virtual-clock simulation](#14) | S08 | CPU | not_started | — |
+| S14 | [CUDA runtime (streams/events/memory)](#15) | S13 | **GPU** | not_started | — |
+| S15 | [Scheduler overhead benchmarks & granularity](#16) | S14 | **GPU** | not_started | — |
+| S16 | [PyTorch adapter (torch.compile bridge)](#17) | S12,S14 | **GPU** | not_started | — |
+| S17 | [Dataframe adapter (pandas/cuDF/Arrow)](#18) | S16 | **GPU** | not_started | — |
+| S18 | [DLPack handoff & memory ownership](#19) | S16,S17 | **GPU** | not_started | — |
+| S19 | [Cost model v0, profitability gate, CUDA Graphs](#20) | S15,S18 | **GPU** | not_started | — |
+| S20 | [Day-90 evidence package (B0-B3)](#21) | S19 | **GPU** | not_started | — |
+| S21 | [**GATE: day-90 go/narrow/stop**](#22) | S20 | — | not_started | — |
+| S22 | [Effect & alias analysis hardening](#23) | S21=go | **GPU** | not_started | — |
+| S23 | [Optimizer passes (parallelize/fuse/place)](#24) | S22 | **GPU** | not_started | — |
+| S24 | [50-program corpus, property & metamorphic tests](#25) | S23 | **GPU** | not_started | — |
+| S25 | [Fuzzing, sanitizers, failure injection](#26) | S24 | **GPU** | not_started | — |
+| S26 | [CLI & developer experience (explain/doctor/docs)](#27) | S23 | CPU | not_started | — |
+| S27 | [Packaging, wheels, SBOM](#28) | S26 | CPU | not_started | — |
+| S28 | [v0.1 qualification (soak + benchmark gates)](#29) | S24,S25,S27 | **GPU** | not_started | — |
+| S29 | [**GATE: v0.1 release review**](#30) | S28 | — | not_started | — |
 
 ## Gate summaries
 

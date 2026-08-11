@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #13 |
 | Milestone | M1 — Compiler skeleton (closes it) |
 | Depends on | S11 (done) |
 | Hardware | CPU-only (GPU optional for corpus variety) |

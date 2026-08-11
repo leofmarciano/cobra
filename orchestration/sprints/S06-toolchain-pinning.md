@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #7 |
 | Milestone | M1 — Compiler skeleton |
 | Depends on | S05 = go |
 | Hardware | CPU-only (container must also build on the GPU host) |

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cobra-compiler"
+version = "0.0.1.dev0"
+description = "AI-native whole-program Python compiler and heterogeneous parallel runtime"
+readme = "README.md"
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+requires-python = "==3.13.*"
+authors = [
+    { name = "The Cobra Project Authors" },
+]
+keywords = ["compiler", "python", "machine-learning", "gpu", "parallel"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Compilers",
+]
+
+[project.optional-dependencies]
+native = []
+
+[project.scripts]
+cobra = "cobra_compiler.cli.main:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11,<0.12",
+    "mypy>=1.15,<1.16",
+    "pytest>=8.3,<9",
+]
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["python"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.13"
+packages = ["cobra_compiler"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[tool.pytest.ini_options]
+testpaths = ["test/python"]
+python_files = ["test_*.py"]
