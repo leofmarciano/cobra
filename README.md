@@ -1,5 +1,8 @@
 # Cobra
 
+[![CI](https://github.com/leofmarciano/cobra/actions/workflows/ci.yml/badge.svg)](https://github.com/leofmarciano/cobra/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20WITH%20LLVM--exception-blue.svg)](LICENSE)
+
 An AI-native whole-program Python compiler and heterogeneous parallel
 runtime: capture ordinary Python AI pipelines (pandas + PyTorch + glue),
 prove safe dependencies, and automatically choose parallel execution,
@@ -27,6 +30,28 @@ orchestration/
 ├── prompts/        ← paste-ready prompts (P0 execute … P4 replan)
 └── sprints/        ← S00…S29 work orders + session logs
 ```
+
+## CI / CD
+
+The repository is continuously validated with GitHub Actions:
+
+- `ci.yml` — lint (ruff, mypy, yamllint, biome, markdownlint, shellcheck,
+  editorconfig, actionlint), tests, dependency/dead-code health (deptry,
+  vulture), and orchestration-harness dry-run.
+- `nightly.yml` — scheduled long-running tests.
+- `release.yml` — tag-based wheel build and (disabled until S27) PyPI/GitHub
+  release.
+- `security.yml` — CodeQL analysis.
+
+Local one-shot:
+
+```bash
+./scripts/check.sh
+```
+
+Node tooling is pinned with `package-lock.json`; Python tooling is pinned with
+`uv.lock` and `pyproject.toml`. Dependabot keeps both ecosystems and GitHub
+Actions up to date.
 
 ## Operating the loop (human)
 

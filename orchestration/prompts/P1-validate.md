@@ -29,7 +29,9 @@ trust nothing.
   - benchmark claims violating plan §33.11 anti-patterns?
   - TODOs without a Session-log note?
 4. **Consistency**: sprint checkboxes, STATE.md, and git history all agree.
-5. **DoD**: every item in the sprint's "Definition of Done" holds.
+5. **CI check**: run `./scripts/check.sh` from a clean checkout of the
+   sprint branch. It must pass with no new warnings or disabled lints.
+6. **DoD**: every item in the sprint's "Definition of Done" holds.
 
 You may fix trivial issues yourself (≤ ~5 lines: typos, doc links, a
 missing checkbox). Anything larger is a defect — do not fix it.

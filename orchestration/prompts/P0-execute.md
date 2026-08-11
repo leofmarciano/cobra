@@ -40,6 +40,8 @@ root).
   before adding any dependency not named in the sprint.
 - Native (C++/CMake/CUDA) work only inside the dev container / Linux GPU
   host recorded in STATE.md — never raw on macOS.
+- Run `./scripts/check.sh` before every handoff. If a lint/type/test/config
+  failure is not fixable within the sprint scope, record it as a blocker.
 
 ## Handoff (mandatory end of session — do this when the sprint is done,
 ## when ~80% of your context is used, or when blocked)
