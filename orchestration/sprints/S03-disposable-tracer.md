@@ -46,7 +46,7 @@ compiler exists. **This code is explicitly disposable** — it lives in
   not a product — just don't make it useless).
 
 ### T2 — Dependency DAG builder
-- [ ] Do: connect events into a DAG via value identity (tensor storage,
+- [x] Do: connect events into a DAG via value identity (tensor storage,
   df object id, opaque handles). Unknown-effect nodes get ordering edges
   to neighbors (conservative, §6.3 spirit). Export JSON + Graphviz dot.
 - Accept: unit tests on synthetic event streams: chain, fan-out/fan-in,
@@ -127,3 +127,19 @@ the JSON schema documented in the tracer README.
   conservative ordering edges for opaque nodes; export JSON + Graphviz
   dot; unit tests on synthetic event streams for chain / fan-out-fan-in /
   mutation-forces-ordering). Sprint remains `in_progress`.
+
+- [2026-08-11][executor P0] T2 done. Added `experimental/tracer/src/tracer/dag.py`
+  (`build_dag`, `to_json`, `to_dot`): builds a DAG from recorded `Event`s by
+  value-identity handle, emitting `data` edges from the last producer of a
+  handle to its consumers and `order` edges between successive producers of
+  the same handle (mutation ordering). Opaque nodes receive conservative
+  program-order `order` edges to their immediate neighbors (plan §6.3
+  spirit). Exports JSON and Graphviz DOT with shape/color hints per
+  recorder kind. Added 7 unit tests in `experimental/tracer/tests/test_dag.py`
+  covering chain, fan-out/fan-in, mutation-forces-ordering, opaque
+  neighbor fencing, isolated roots/leaves, and JSON/DOT export.
+  Updated `tracer/__init__.py` to expose the new functions and documented
+  the JSON schema in `experimental/tracer/README.md`. Tracer suite now
+  passes 26 tests (`uv run pytest experimental/tracer -q`); `./scripts/check.sh`
+  passes. Next: T3 (critical path / parallelism analysis + reports for the
+  three workloads). Sprint remains `in_progress`.

@@ -59,9 +59,53 @@ for event in session.events:
     print(event.op, event.duration_ns, event.input_handles, event.output_handles)
 ```
 
+## Building a DAG
+
+```python
+from tracer import build_dag, to_json, to_dot
+from tracer.session import trace
+
+with trace() as session:
+    result = my_pipeline(x)
+
+dag = build_dag(session.events)
+print(to_json(dag))
+print(to_dot(dag))
+```
+
 ## JSON schema (S10 handoff note)
 
 `tracer.dag` (S03-T2) exports the recorded events plus dependency edges as
 JSON. Keep that schema documented here as it evolves — S10 converts it into
 real Cobra IR, so it is the one artifact from this spike expected to
 outlive `experimental/`.
+
+```json
+{
+  "nodes": [
+    {
+      "id": 0,
+      "kind": "torch",
+      "op": "torch.relu",
+      "args_summary": "Tensor(...)",
+      "metadata": {...},
+      "duration_ns": 1234,
+      "thread_id": 1234567890,
+      "source": "pipeline.py:42"
+    }
+  ],
+  "edges": [
+    {"from": 0, "to": 1, "kind": "data"},
+    {"from": 1, "to": 2, "kind": "order"}
+  ],
+  "roots": [0],
+  "leaves": [2]
+}
+```
+
+Edge kinds:
+
+* `data` — the consumer reads a handle last produced by the source event.
+* `order` — either the source and target mutate the same storage identity, or
+  an unknown-effect `opaque` node is being fenced against its program-order
+  neighbors (plan §6.3 spirit).
