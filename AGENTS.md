@@ -51,6 +51,13 @@ TECHNICAL_PLAN > ROADMAP > sprint file > STATE.
 
 ## Environment note
 
+## CI / CD
+
+Every executor must leave the repo passing `./scripts/check.sh` before handoff.
+CI on GitHub runs the same checks. Do not disable, weaken, or bypass a lint rule
+unless the sprint explicitly permits it; if a rule blocks the active task,
+record it as a blocker and ask the human.
+
 The orchestration host may be macOS, but Cobra targets **Linux x86_64 +
 NVIDIA CUDA**. All native (C++/CUDA) work must happen inside the dev
 container or on the Linux GPU host recorded in STATE.md. Sprints are tagged

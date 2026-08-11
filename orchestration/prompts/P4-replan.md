@@ -32,6 +32,7 @@ recorded decision.
 - Preserve the loop invariants: WIP=1, explicit dependencies, hardware
   tags, Context budgets citing plan §-sections, acceptance criteria per
   task, Validation commands, DoD, Session log section.
+- If a replan changes CI/tooling, ensure `./scripts/check.sh` still passes.
 - Keep sprints sized for 1-4 executor sessions; split anything larger.
 - Renumber only forward (new sprints get new IDs like S22a or S30+;
   existing IDs never change meaning).

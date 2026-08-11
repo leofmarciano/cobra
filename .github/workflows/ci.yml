@@ -1,0 +1,151 @@
+---
+name: CI
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.7.14"
+  NODE_VERSION: "22"
+
+jobs:
+  python-lint:
+    name: Python lint / format / type
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Sync dependencies
+        run: uv sync --locked
+
+      - name: Python lint & format
+        run: bash scripts/ci/python-lint.sh
+
+  python-test:
+    name: Python tests
+    runs-on: ubuntu-latest
+    needs: python-lint
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Sync dependencies
+        run: uv sync --locked
+
+      - name: Run pytest
+        run: bash scripts/ci/python-test.sh
+
+  python-health:
+    name: Python dependency / dead-code health
+    runs-on: ubuntu-latest
+    needs: python-lint
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Sync dependencies
+        run: uv sync --locked
+
+      - name: deptry + vulture
+        run: bash scripts/ci/python-health.sh
+
+  config-lint:
+    name: Config / docs / shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Sync Python dependencies
+        run: uv sync --locked
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Lint configs (biome, markdown, yaml, shell, editorconfig)
+        run: bash scripts/ci/config-lint.sh
+
+      - name: Lint GitHub Actions
+        uses: raven-actions/actionlint@v1
+        with:
+          fail-on-error: true
+
+  knip:
+    name: Knip dead-code / unused deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run knip
+        run: npx knip --no-progress
+
+  build-smoke:
+    name: Build smoke
+    runs-on: ubuntu-latest
+    if: false # enable in S06 when CMakeLists.txt lands
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build smoke
+        run: bash scripts/ci/build-smoke.sh
+
+  orchestration-smoke:
+    name: Orchestration harness dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dry-run loop harness
+        run: bash scripts/ci/orchestration-smoke.sh
