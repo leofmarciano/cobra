@@ -35,7 +35,7 @@ M1 ≈ days 31-60 (Phase 1 + start of Phase 2). M2 = days 61-75. M3 = days
 | ID | Title | Depends on | Hardware | Status | Validated |
 |---|---|---|---|---|---|
 | S00 | [Project bootstrap & governance](#1) | — | CPU | done | 2026-08-11 |
-| S01 | [Benchmark harness (cobra-bench v0)](#2) | S00 | CPU | not_started | — |
+| S01 | [Benchmark harness (cobra-bench v0)](#2) | S00 | CPU | done | 2026-08-11 |
 | S02 | [Baseline workloads & B0/B1 report](#3) | S01 | **GPU** | not_started | — |
 | S03 | [Disposable whole-program tracer](#4) | S02 | **GPU** | not_started | — |
 | S04 | [CUDA experiments A/B/C](#5) | S03 | **GPU** | not_started | — |

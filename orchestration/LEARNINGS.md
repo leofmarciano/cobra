@@ -10,7 +10,10 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Build & toolchain
 
-- (none yet)
+- [2026-08-11][S01 validation] Adding a new workspace package with tests
+  requires updating `scripts/ci/python-test.sh` and `python-lint.sh`. Validator
+  found `./scripts/check.sh` was not running `benchmarks/harness` tests or mypy
+  on the harness; fixed by adding the package paths to those scripts.
 
 ## Python / frameworks (torch, pandas, cuDF, Arrow)
 
@@ -26,6 +29,13 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Benchmarking & measurement
 
+- [2026-08-11][S01 validation] The timing engine's `stability_window`
+  currently doubles as the earliest point at which warmup can stop; there is no
+  separate `min_warmup` count. If future sprints need stricter warmup control,
+  add `min_warmup` to `TimingConfig` and require it before `_is_stable`.
+- [2026-08-11][S01 validation] The cold runner uses `random.shuffle` and
+  ignores `--seed`; if S02 needs reproducible cold-path ordering, switch to a
+  `random.Random(options.seed)` instance.
 - [2026-08-11][S01] When hand-writing benchmark manifest/suite YAML,
   quote any all-digit string field (commit SHAs, hashes) explicitly
   (`commit: "0000...0"`), otherwise PyYAML's default loader parses it as
