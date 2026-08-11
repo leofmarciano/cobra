@@ -40,3 +40,27 @@ def test_b0_runs_and_returns_serializable_result() -> None:
     assert result1.keys() == result2.keys()
     assert result1["n_rows"] == result2["n_rows"]
     assert result1 == result2
+
+
+def test_b1_runs_and_returns_serializable_result() -> None:
+    """The b1 entrypoint must run end-to-end and return a deterministic dict."""
+    os.environ["COBRA_PARQUET_SEED"] = "12345"
+    result1 = parquet_feature_inference.b1()
+    result2 = parquet_feature_inference.b1()
+
+    assert isinstance(result1, dict)
+    assert result1.keys() == result2.keys()
+    assert result1["n_rows"] == result2["n_rows"]
+    assert result1 == result2
+
+
+def test_b1_produces_same_result_as_b0() -> None:
+    """B1 must produce numerically equivalent results to B0 (same pipeline, just compiled)."""
+    os.environ["COBRA_PARQUET_SEED"] = "12345"
+    b0_result = parquet_feature_inference.b0()
+    b1_result = parquet_feature_inference.b1()
+
+    assert b0_result["n_rows"] == b1_result["n_rows"]
+    # Float results may differ slightly due to compilation, but must be close
+    assert abs(b0_result["mean_score"] - b1_result["mean_score"]) < 1e-4
+    assert abs(b0_result["score_sum"] - b1_result["score_sum"]) < 1e-2

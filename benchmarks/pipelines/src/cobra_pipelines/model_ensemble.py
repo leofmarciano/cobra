@@ -154,3 +154,60 @@ def b0() -> dict[str, Any]:
         "ensemble_mean": float(np.mean(ensemble_np)),
         "ensemble_sum": float(np.sum(ensemble_np)),
     }
+
+
+def b1() -> dict[str, Any]:
+    """B1: torch.compile on both models — strongest automatic composition.
+
+    Plan §20.2: B1 is "strongest reasonable composition of existing automatic
+    tools, such as torch.compile [...] without hand-written application
+    restructuring."
+
+    Flags/modes:
+    - torch.compile(mode="default", fullgraph=False) on both MLP and Transformer.
+    - No manual restructuring of the pipeline logic vs. b0.
+    """
+    from cobra_pipelines._compile_env import ensure_nvcc_in_path
+
+    ensure_nvcc_in_path()
+
+    seed = DEFAULT_SEED
+    batch_size = DEFAULT_BATCH_SIZE
+    in_features = IN_FEATURES
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Generate deterministic input batch (identical to b0)
+    rng = torch.Generator().manual_seed(seed)
+    x = torch.randn(batch_size, in_features, generator=rng, dtype=torch.float64)
+    x_dev = x.to(device)
+
+    # Branch A: MLP with torch.compile
+    mlp = _build_mlp(in_features, seed).to(device)
+    mlp.eval()
+    compiled_mlp = torch.compile(mlp, mode="default", fullgraph=False)
+
+    # Branch B: Transformer with torch.compile
+    transformer = _build_transformer(in_features, seed + 1).to(device)
+    transformer.eval()
+    compiled_transformer = torch.compile(transformer, mode="default", fullgraph=False)
+
+    with torch.inference_mode():
+        mlp_scores = compiled_mlp(x_dev).squeeze(-1)  # (batch_size,)
+        trans_scores = compiled_transformer(x_dev).squeeze(-1)  # (batch_size,)
+
+    # Weighted aggregation
+    ensemble_scores = WEIGHT_MLP * mlp_scores + WEIGHT_TRANSFORMER * trans_scores
+
+    # Move to CPU numpy for summary
+    mlp_np: np.ndarray = mlp_scores.cpu().numpy()
+    trans_np: np.ndarray = trans_scores.cpu().numpy()
+    ensemble_np: np.ndarray = ensemble_scores.cpu().numpy()
+
+    return {
+        "n_samples": int(batch_size),
+        "mlp_mean": float(np.mean(mlp_np)),
+        "transformer_mean": float(np.mean(trans_np)),
+        "ensemble_mean": float(np.mean(ensemble_np)),
+        "ensemble_sum": float(np.sum(ensemble_np)),
+    }

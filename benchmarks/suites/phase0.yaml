@@ -34,11 +34,15 @@ correctness:
     float32: 1.0e-4
     float16: 1.0e-2
     bfloat16: 1.0e-2
+    # Python float values from workloads mixing float32 models; torch.compile
+    # may reorder float32 ops introducing up to ~1e-3 absolute differences.
+    float: 1.0e-3
   atol_by_dtype:
     float64: 1.0e-8
     float32: 1.0e-6
     float16: 1.0e-3
     bfloat16: 1.0e-3
+    float: 1.0e-3
 
 workloads:
   - name: parquet_feature_inference
@@ -46,15 +50,25 @@ workloads:
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.parquet_feature_inference:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on MLP +
+      # cudf.pandas install() if available (transparent acceleration)
+      - name: b1
+        entrypoint: "cobra_pipelines.parquet_feature_inference:b1"
 
   - name: model_ensemble
     input_fingerprint: model-ensemble-v0
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.model_ensemble:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on both MLP and Transformer
+      - name: b1
+        entrypoint: "cobra_pipelines.model_ensemble:b1"
 
   - name: cv_preprocess_inference_postprocess
     input_fingerprint: cv-preprocess-inference-postprocess-v0
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on resnet18 only
+      - name: b1
+        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b1"

@@ -225,6 +225,82 @@ def b0() -> dict[str, Any]:
     return _project(scores, len(df))
 
 
+class _SmallMLPCompiled(nn.Module):
+    """Same architecture as _SmallMLP, for use with torch.compile."""
+
+    def __init__(self, in_features: int, seed: int) -> None:
+        super().__init__()
+        torch.manual_seed(seed)
+        self.fc1 = nn.Linear(in_features, 32, dtype=torch.float64)
+        self.fc2 = nn.Linear(32, 1, dtype=torch.float64)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return cast(torch.Tensor, self.fc2(torch.relu(self.fc1(x))))
+
+
+def _mlp_scores_compiled(features: pd.DataFrame, seed: int) -> np.ndarray:
+    """Convert features to a torch tensor and run a torch.compiled MLP."""
+    from cobra_pipelines._compile_env import ensure_nvcc_in_path
+
+    ensure_nvcc_in_path()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    x = torch.from_numpy(features.to_numpy(dtype=np.float64)).to(device, dtype=torch.float64)
+    model = _SmallMLPCompiled(x.shape[1], seed).to(device)
+    model.eval()
+    compiled_model = torch.compile(model, mode="default", fullgraph=False)
+    with torch.inference_mode():
+        out = compiled_model(x).squeeze(-1).to("cpu", dtype=torch.float64)
+        return cast(np.ndarray, out.numpy())
+
+
+def _cudf_pandas_available() -> bool:
+    """Check whether cudf.pandas is importable."""
+    try:
+        import cudf.pandas  # noqa: F401
+
+        return True
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+
+def b1() -> dict[str, Any]:
+    """B1: torch.compile on MLP + cudf.pandas acceleration (plan §20.2).
+
+    Strongest automatic composition without manual restructuring:
+    - torch.compile(mode="default", fullgraph=False) on the MLP.
+    - cudf.pandas monkey-patches pandas for GPU-accelerated dataframe ops
+      (if cudf is available; gracefully falls back to CPU pandas otherwise).
+
+    Flags/modes:
+    - torch.compile: mode="default", fullgraph=False
+    - cudf.pandas: install() called before pandas operations (transparent
+      acceleration — no code changes to the pipeline logic).
+    """
+    # Activate cudf.pandas if available (transparent acceleration)
+    if _cudf_pandas_available():
+        import cudf.pandas
+
+        cudf.pandas.install()
+
+    seed = _seed()
+    n_rows = _n_rows()
+    data_dir = Path(os.environ.get(DATA_DIR_ENV, _default_data_dir()))
+
+    # Ensure the dataset exists
+    expected_path = _parquet_path(data_dir, n_rows=n_rows, seed=seed)
+    if not expected_path.is_file():
+        generate_dataset(n_rows, seed, data_dir)
+
+    # Pipeline is identical to b0 in structure — only the model is compiled
+    # and pandas is transparently accelerated by cudf.pandas.
+    df = _read_and_filter(str(expected_path))
+    features = _engineer_features(df)
+    scores = _mlp_scores_compiled(features, seed)
+    return _project(scores, len(df))
+
+
 def dataset_fingerprint() -> str:
     """Return a sha256 hash of the current dataset file for the manifest."""
     path = _parquet_path()

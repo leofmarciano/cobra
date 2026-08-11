@@ -105,3 +105,24 @@ def test_weighted_aggregation_is_correct() -> None:
     result = model_ensemble.b0()
     assert abs(result["ensemble_mean"] - float(np.mean(expected_ensemble))) < 1e-10
     assert abs(result["ensemble_sum"] - float(np.sum(expected_ensemble))) < 1e-6
+
+
+def test_b1_runs_and_returns_deterministic_result() -> None:
+    """The b1 entrypoint must run end-to-end and return the same dict twice."""
+    result1 = model_ensemble.b1()
+    result2 = model_ensemble.b1()
+
+    assert isinstance(result1, dict)
+    assert result1.keys() == result2.keys()
+    assert result1 == result2
+
+
+def test_b1_produces_same_result_as_b0() -> None:
+    """B1 must produce numerically equivalent results to B0 (same pipeline, compiled)."""
+    b0_result = model_ensemble.b0()
+    b1_result = model_ensemble.b1()
+
+    assert b0_result["n_samples"] == b1_result["n_samples"]
+    # torch.compile may introduce small numerical differences
+    assert abs(b0_result["ensemble_mean"] - b1_result["ensemble_mean"]) < 1e-4
+    assert abs(b0_result["ensemble_sum"] - b1_result["ensemble_sum"]) < 1e-1

@@ -167,3 +167,61 @@ def b0() -> dict[str, Any]:
         "top1_confidences": post_result["top1_confidences"],
         "n_above_threshold": post_result["n_above_threshold"],
     }
+
+
+def _run_resnet18_compiled(preprocessed: torch.Tensor, device: torch.device) -> torch.Tensor:
+    """Run torch.compiled resnet18 with deterministic (default) weights.
+
+    Returns raw logits of shape (batch, 1000).
+    """
+    from cobra_pipelines._compile_env import ensure_nvcc_in_path
+
+    ensure_nvcc_in_path()
+
+    torch.manual_seed(0)
+    weights = models.ResNet18_Weights.DEFAULT
+    model = models.resnet18(weights=weights).to(device)
+    model.eval()
+
+    compiled_model = torch.compile(model, mode="default", fullgraph=False)
+
+    x = preprocessed.to(device)
+    with torch.inference_mode():
+        logits: torch.Tensor = compiled_model(x)
+    return logits
+
+
+def b1() -> dict[str, Any]:
+    """B1: torch.compile on resnet18 — strongest automatic composition.
+
+    Plan §20.2: B1 is "strongest reasonable composition of existing automatic
+    tools, such as torch.compile [...] without hand-written application
+    restructuring."
+
+    Flags/modes:
+    - torch.compile(mode="default", fullgraph=False) on resnet18.
+    - Preprocessing remains CPU-bound (no manual restructuring).
+    - No cudf.pandas (this workload does not use pandas).
+    """
+    seed = DEFAULT_SEED
+    batch_size = DEFAULT_BATCH_SIZE
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Step 1: Generate synthetic images (identical to b0)
+    images = _generate_synthetic_images(batch_size, seed)
+
+    # Step 2: CPU preprocessing (identical to b0 — no restructuring)
+    preprocessed = _preprocess(images)
+
+    # Step 3: GPU inference with torch.compile
+    logits = _run_resnet18_compiled(preprocessed, device)
+
+    # Step 4: Postprocessing (identical to b0)
+    post_result = _postprocess(logits, TOP_K, CONFIDENCE_THRESHOLD)
+
+    return {
+        "n_images": batch_size,
+        "top1_class_ids": post_result["top1_class_ids"],
+        "top1_confidences": post_result["top1_confidences"],
+        "n_above_threshold": post_result["n_above_threshold"],
+    }

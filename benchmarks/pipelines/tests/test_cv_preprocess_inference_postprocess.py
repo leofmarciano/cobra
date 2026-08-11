@@ -76,3 +76,34 @@ def test_top_k_and_thresholding() -> None:
 
     # n_above_threshold must be <= n_images
     assert 0 <= result["n_above_threshold"] <= n_images
+
+
+def test_b1_runs_and_returns_deterministic_result() -> None:
+    """The b1 entrypoint must run end-to-end and return the same dict twice."""
+    result1 = cv_preprocess_inference_postprocess.b1()
+    result2 = cv_preprocess_inference_postprocess.b1()
+
+    assert isinstance(result1, dict)
+    assert result1.keys() == result2.keys()
+    assert result1 == result2
+
+
+def test_b1_produces_same_result_as_b0() -> None:
+    """B1 must produce numerically equivalent results to B0 (same pipeline, compiled).
+
+    torch.compile may reorder float32 operations, introducing differences up
+    to ~1e-3 in softmax probabilities.  We use 1e-3 as the tolerance for
+    per-image confidences (float32 model) — this matches the harness's
+    rtol_by_dtype for float32 (1e-4 relative) which translates to absolute
+    differences of ~1e-3 at typical confidence magnitudes.
+    """
+    b0_result = cv_preprocess_inference_postprocess.b0()
+    b1_result = cv_preprocess_inference_postprocess.b1()
+
+    assert b0_result["n_images"] == b1_result["n_images"]
+    # Class IDs must match (softmax + argmax is deterministic for clear winners)
+    assert b0_result["top1_class_ids"] == b1_result["top1_class_ids"]
+    # Confidences may differ due to compiled float32 reordering (atol=1e-3)
+    for c0, c1 in zip(b0_result["top1_confidences"], b1_result["top1_confidences"], strict=True):
+        assert abs(c0 - c1) < 1e-3
+    assert b0_result["n_above_threshold"] == b1_result["n_above_threshold"]

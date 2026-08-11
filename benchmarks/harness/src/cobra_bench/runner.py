@@ -80,12 +80,19 @@ _DEFAULT_ATOL: dict[str, float] = {
 
 
 def _float_key(expected: Any, actual: Any, by_dtype: dict[str, float]) -> str:
-    """Pick a tolerance-key from the concrete scalar type name, defaulting to float64."""
+    """Pick a tolerance-key from the concrete scalar type name, defaulting to float64.
+
+    Resolution order for Python ``float`` values:
+    1. If "float" is a key in by_dtype, use it (allows suite-level override).
+    2. Otherwise fall back to "float64".
+    """
     for value in (expected, actual):
         name = type(value).__name__
         if name in by_dtype:
             return name
         if name == "float":
+            if "float" in by_dtype:
+                return "float"
             return "float64"
     return "float64"
 

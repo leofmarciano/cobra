@@ -65,7 +65,7 @@ Cobra must beat at S05/S21.
 - Accept: oracle passes; preprocessing measurably CPU-bound (documented).
 
 ### T4 — B0 and B1 variants
-- [ ] Do: for each workload, `b0` = plain eager; `b1` = strongest
+- [x] Do: for each workload, `b0` = plain eager; `b1` = strongest
   automatic composition: `torch.compile` on models + `cudf.pandas`
   acceleration where applicable (§20.2 — B1 must NOT include manual
   restructuring). Document exact flags/modes per variant in the workload
