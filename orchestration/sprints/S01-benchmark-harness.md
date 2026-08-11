@@ -62,7 +62,7 @@ bootstrap statistics, and correctness-gated measurement.
   max-warmup failure, order randomization, correctness-gating.
 
 ### T4 — Result schema + statistics
-- [ ] Do: per-sample record per §33.10 (distinguish real-zero from
+- [x] Do: per-sample record per §33.10 (distinguish real-zero from
   unavailable via `null`), written as JSON-lines + Parquet (pyarrow).
   `cobra-bench analyze`: median, p95/p99, geometric-mean speedup,
   bootstrap 95% CI, coefficient of variation; outputs `summary.md`,
@@ -166,3 +166,21 @@ details into STATE.md Environment.
     `scripts/.cobra_loop.lock`. Working tree is now clean.
   - STATE.md corrected to current task T4. Next: T4 — result schema +
     statistics.
+- [2026-08-11][S01 executor (P0), T4] Done: implemented `cobra_bench.results`
+  (`SampleRecord` per §33.10 with optional fields to distinguish real-zero
+  from unavailable, JSON-lines and Parquet read/write), `cobra_bench.stats`
+  (median, p95/p99, geometric mean, coefficient of variation, bootstrap-95%
+  CI for both raw metric and baseline-relative speedup, significance when the
+  CI excludes 1.0x per §20.7), and `cobra_bench.analyze` + the unified
+  `cobra-bench` CLI entry point with the `analyze` subcommand. Added
+  `pyarrow>=19.0,<20` runtime dependency (recorded in `DECISIONS.md` as
+  D-006) and harness-local `[tool.mypy]` overrides for untyped pyarrow
+  imports. Generated artifacts: `summary.md`, `summary.json`, and
+  `confidence_intervals.csv`. Added 30 new TDD unit tests across
+  `test_results.py`, `test_stats.py`, and `test_analyze.py`. Validation:
+  `uv run pytest benchmarks/harness -q` (86 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `uv run ruff check benchmarks/harness` and `ruff format --check` (clean),
+  `./scripts/check.sh` (green). T4 checked; sprint `in_progress`; next is
+  T5 — CLI assembly (`doctor|verify|run|analyze|compare` and end-to-end
+  `cobra-bench run` with the example suite).

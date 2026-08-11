@@ -57,6 +57,18 @@ Format:
   run/task/mailbox provenance is not used; progress classification is
   file-based (STATE.md + git), which the loop was designed around.
 
+## D-006 — cobra-bench harness dependency: pyarrow
+
+- Date / by: 2026-08-11 / S01 executor (P0), T4
+- Context: S01 T4 requires Parquet output for raw sample records and analysis
+  artifacts (plan §33.10: JSON-lines + Parquet; §33.8: analysis output).
+- Decision: Added `pyarrow>=19.0,<20` as a runtime dependency of the
+  `cobra-bench` workspace package (`benchmarks/harness/pyproject.toml`).
+  Version 19.0.1 was published 2025-01-20 and is widely used in the Python
+  data ecosystem.
+- Consequences: `uv sync` installs pyarrow. Harness can now write/read
+  `samples.parquet` alongside `samples.jsonl`.
+
 ## D-005 — cobra-bench harness dependencies: pyyaml, types-pyyaml
 
 - Date / by: 2026-08-11 / S01 executor (P0), T1
