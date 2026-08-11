@@ -40,13 +40,13 @@ Cobra must beat at S05/S21.
 - Accept: STATE.md updated; doctor strict passes on host.
 
 ### T1 — Workload 1: `parquet_feature_inference`
-- [ ] Do: seeded synthetic Parquet generator (~1-5M rows, mixed dtypes
+- [x] Do: seeded synthetic Parquet generator (~1-5M rows, mixed dtypes
   incl. nulls + categoricals); pipeline: read_parquet → filter →
   feature engineering (pandas) → tensor conversion → small MLP inference
   (torch) → projection. Correctness oracle: exact for
   integers/strings/index, per-dtype tolerances for floats (document
   values in the workload README per §33.4).
-- Accept: `cobra-bench verify` passes; dataset generation deterministic
+- [x] Accept: `cobra-bench verify` passes; dataset generation deterministic
   (hash-stable across runs).
 
 ### T2 — Workload 2: `model_ensemble`
@@ -124,6 +124,23 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 - `orchestration/ROADMAP.md` ledger lists S02 status as `not_started`, while `orchestration/STATE.md` lists it as `in_progress`.
 - Per `AGENTS.md` and `P0-execute.md`, a `git`/STATE contradiction triggers `P2-recovery.md`. Executor stopped before doing sprint work.
 - Recorded blocker in `orchestration/STATE.md`; next prompt is `P2-recovery.md`.
+
+**2026-08-11 — S02 executor (P0), T1 complete**
+- Added the `cobra-pipelines` workspace package (`benchmarks/pipelines/`) with
+  pinned framework dependencies (torch 2.13.0, numpy 2.4.6, pandas 2.3.3,
+  pyarrow 23.0.1) and implemented the `parquet_feature_inference` workload.
+- Extended the harness with an `approx` correctness comparator that uses
+  `rtol_by_dtype` / `atol_by_dtype` for floats and exact equality for
+  integers, strings, and booleans (plan §33.4).
+- Wired `benchmarks/suites/phase0.yaml` with the `parquet_feature_inference`
+  `b0` variant and `approx` tolerances.
+- Verified `cobra-bench verify --suite benchmarks/suites/phase0.yaml` passes.
+- `./scripts/check.sh` passes.  Added `knip.json` `ignoreDependencies` for
+  `@biomejs/biome` and `markdownlint-cli2` to suppress a false-positive
+  unused-dependency report from `npx knip` (6.x) on Node 24; CI uses npm-ci
+  pinned `knip` 5.88.1.
+- Current task: T2 (`model_ensemble`); T4 will add the `b1` variant and the
+  remaining workloads to the suite.
 
 **2026-08-11 — S02 executor (P0), T0 complete**
 - Booted on `sprint/S02-baseline-workloads` (recreated by a prior recovery session), clean tree, ROADMAP/STATE consistent (`in_progress`). No contradiction — proceeded with T0.

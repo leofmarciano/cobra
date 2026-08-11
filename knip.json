@@ -38,7 +38,7 @@
     "vulture",
     "pre-commit"
   ],
-  "ignoreDependencies": [],
+  "ignoreDependencies": ["@biomejs/biome", "markdownlint-cli2"],
   "workspaces": {
     ".": {
       "entry": ["package.json"],

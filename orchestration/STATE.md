@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 T0 done (doctor strict passes, framework versions pinned); starting T1
+**Last updated:** 2026-08-11 — S02 T1 done (`parquet_feature_inference` b0, `cobra-bench verify` passes); starting T2
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S02 — Baseline workloads & B0/B1 report (`orchestration/sprints/S02-baseline-workloads.md`) |
 | Sprint status | `in_progress` |
-| Current task | T1 — Workload 1: `parquet_feature_inference` |
+| Current task | T2 — Workload 2: `model_ensemble` |
 | Branch | `sprint/S02-baseline-workloads` |
-| Next action | Run P0 (Executor) to implement T1 |
+| Next action | Run P0 (Executor) to implement T2 |
 
 ## Blockers
 
@@ -51,18 +51,18 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
-| 2026-08-11 | S02 executor (P0), T0 complete | Ran `cobra-bench doctor --strict` on the WSL2 + RTX 3080 host — passes; committed `artifacts/environment/primary-host.json`. Researched and pinned framework versions in `support-matrix.yaml` (torch 2.13.0, numpy 2.4.6, pandas 2.3.3, pyarrow 23.0.1, cudf-cu13 26.6.0), verifying co-resolution with `uv pip install --dry-run` in a scratch venv (no packages installed into the repo env). Discovered cudf-cu13 26.6.0 caps numpy<2.5/pandas<2.4/pyarrow<24, so pinned versions are the newest releases under those ceilings rather than the newest upstream releases. Updated STATE.md Environment table. T0 checked off; next is T1 (`parquet_feature_inference` workload). |
-| 2026-08-11 | S02 executor (P0), T0 blocked | Booted and read context budget. GPU host now available (WSL2 + RTX 3080), but repo state contradicts itself: working tree on `main` while `STATE.md` declares branch `sprint/S02-baseline-workloads`; git history shows S02 branch already merged via PR #32 (`995e564`); `ROADMAP.md` ledger lists S02 as `not_started` while `STATE.md` lists `in_progress`. Per `AGENTS.md`/`P0-execute.md`, stopping for `P2-recovery.md`. |
-| 2026-08-11 | S01 Validator (P1) | Validated and closed S01. Re-ran all sprint validation commands, ran `./scripts/check.sh`, and found/fixed two CI gaps so the harness tests and mypy run in CI. Merged `sprint/S01-benchmark-harness` into `main` (9d4ec3d). Closed GitHub issue #2. Updated ROADMAP/STATE/LEARNINGS. Next: S02 T0 — record the Linux + NVIDIA GPU host. |
+| 2026-08-11 | S02 executor (P0), T1 complete | Added `cobra-pipelines` workspace package with pinned torch 2.13.0, numpy 2.4.6, pandas 2.3.3, pyarrow 23.0.1. Implemented `parquet_feature_inference` b0 (synthetic Parquet → pandas → torch MLP → projection), added an `approx` correctness comparator with per-dtype `rtol`/`atol` to the harness, wired `benchmarks/suites/phase0.yaml`, and verified `cobra-bench verify` passes. `./scripts/check.sh` passes. T1 checked off; next is T2 (`model_ensemble`). |
+| 2026-08-11 | S02 executor (P0), T0 complete | Ran `cobra-bench doctor --strict` on the WSL2 + RTX 3080 host — passes; committed `artifacts/environment/primary-host.json`. Researched and pinned framework versions in `support-matrix.yaml` (torch 2.13.0, numpy 2.4.6, pandas 2.3.3, pyarrow 23.0.1, cudf-cu13 26.6.0), verifying co-resolution with `uv pip install --dry-run` in a scratch venv. T0 checked off; next is T1. |
+| 2026-08-11 | S02 executor (P0), T0 blocked | Booted and read context budget. GPU host now available (WSL2 + RTX 3080), but repo state contradicted itself: working tree on `main` while `STATE.md` declared branch `sprint/S02-baseline-workloads`; git history showed S02 branch already merged via PR #32 (`995e564`); `orchestration/ROADMAP.md` ledger listed S02 as `not_started` while `orchestration/STATE.md` listed it as `in_progress`. Per `AGENTS.md`/`P0-execute.md`, stopped for `P2-recovery.md`. |
 
 ## Notes for the next session
 
 - S01 is merged to `main` and done.
-- S02 T0 is done: GPU host recorded, `doctor --strict` passes, framework
-  versions pinned in `support-matrix.yaml`. Packages are NOT yet installed
-  into the repo's `uv` environment — T1-T4 will need to add them as real
-  dependencies (torch, numpy, pandas, pyarrow, cudf-cu13) per the pins
-  above; record any new dependency add in the sprint log + DECISIONS.md.
+- S02 T1 is done: `parquet_feature_inference` b0 implemented in
+  `cobra-pipelines`; `cobra-bench verify --suite benchmarks/suites/phase0.yaml`
+  passes. torch 2.13.0, numpy 2.4.6, pandas 2.3.3, pyarrow 23.0.1 are now real
+  dependencies in `benchmarks/pipelines/pyproject.toml` and installed. `cudf-cu13`
+  remains pinned but not yet added (needed for T4 B1 variants).
 - GPU host: WSL2 + RTX 3080 (driver 591.86, compute cap 8.6, 10 GiB, CUDA
   13.1 max per driver). No system `nvcc`; pip wheels supply CUDA 13
   toolkit components.

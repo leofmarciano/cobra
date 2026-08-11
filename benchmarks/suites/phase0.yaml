@@ -1,0 +1,48 @@
+# Phase 0 baseline suite (S02).  Begins with workload 1 (parquet_feature_inference);
+# T2-T4 add model_ensemble, cv_preprocess_inference_postprocess, and the b1 variants.
+run_id: phase0-v0
+suite: phase0
+commit: "0000000000000000000000000000000000000000"
+workload_commit: "0000000000000000000000000000000000000000"
+container_digest: null
+
+host:
+  manual: true
+  hostname_alias: primary-bench-01
+
+cuda: {}
+
+software:
+  python: "3.13"
+  pytorch: "2.13.0"
+  pandas: "2.3.3"
+  numpy: "2.4.6"
+  pyarrow: "23.0.1"
+
+protocol:
+  warmup_policy: stability
+  minimum_samples: 30
+  configuration_order: randomized
+  correctness_required: true
+  confidence_interval: bootstrap-95
+
+correctness:
+  comparator: approx
+  equal_nan: true
+  rtol_by_dtype:
+    float64: 1.0e-5
+    float32: 1.0e-4
+    float16: 1.0e-2
+    bfloat16: 1.0e-2
+  atol_by_dtype:
+    float64: 1.0e-8
+    float32: 1.0e-6
+    float16: 1.0e-3
+    bfloat16: 1.0e-3
+
+workloads:
+  - name: parquet_feature_inference
+    input_fingerprint: parquet-feature-inference-v0
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.parquet_feature_inference:b0"

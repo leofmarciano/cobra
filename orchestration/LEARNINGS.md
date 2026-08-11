@@ -14,6 +14,14 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   requires updating `scripts/ci/python-test.sh` and `python-lint.sh`. Validator
   found `./scripts/check.sh` was not running `benchmarks/harness` tests or mypy
   on the harness; fixed by adding the package paths to those scripts.
+- [2026-08-11][S02] A dedicated `cobra-pipelines` workspace package keeps the
+  heavy framework dependencies (torch, pandas, pyarrow) out of `cobra-bench`
+  itself while still making workload entrypoints importable via `uv sync`.
+- [2026-08-11][S02] `npx knip` on Node 24 may install a newer `knip` (6.x)
+  than the package-lock pinned version (5.x).  If `knip` reports unused
+  dependencies for packages that are only referenced in `package.json`
+  scripts and whose binaries are in `ignoreBinaries`, add them to
+  `ignoreDependencies` or pin the `npx` version to the lockfile version.
 
 ## Python / frameworks (torch, pandas, cuDF, Arrow)
 
@@ -39,6 +47,12 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 - (none yet)
 
 ## Benchmarking & measurement
+
+- [2026-08-11][S02] The `approx` correctness comparator should inspect the
+  concrete scalar type name (`float`, `float32`, `float64`) to pick a tolerance
+  from `rtol_by_dtype` / `atol_by_dtype`, and it must handle `None`, `bool`,
+  `str`, nested `dict`/`list`, and numeric tolerance with `math.isclose`
+  (plan §33.4).
 
 - [2026-08-11][S01 validation] The timing engine's `stability_window`
   currently doubles as the earliest point at which warmup can stop; there is no

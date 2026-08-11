@@ -85,6 +85,22 @@ Format:
   similarly need to add `pyarrow` (already named explicitly in the S01
   sprint file) — record that addition here when it lands.
 
+## D-007 — Baseline pipeline package dependencies (torch, pandas, numpy, pyarrow)
+
+- Date / by: 2026-08-11 / S02 executor (P0), T1
+- Context: S02 T1 needs pandas, NumPy, PyArrow, and PyTorch for the
+  `parquet_feature_inference` B0 baseline (plan §20.2, §20.3-D, §29).  The
+  framework versions were pinned in S02-T0 (`support-matrix.yaml`) after
+  verifying co-resolution with `cudf-cu13==26.6.0`.
+- Decision: Added the pinned versions as runtime dependencies of the new
+  `cobra-pipelines` workspace package (`benchmarks/pipelines/pyproject.toml`):
+  `torch==2.13.0`, `numpy==2.4.6`, `pandas==2.3.3`, `pyarrow==23.0.1`.
+  `cudf-cu13` is pinned but not yet added; it will be added when the B1
+  variants (cudf.pandas) are wired in T4.
+- Consequences: `uv sync` installs the four packages.  B0 workloads can now
+  exercise the full Parquet → pandas → torch pipeline.  `cudf-cu13` will be
+  added and the NVIDIA package index configured in T4.
+
 ## D-003 — Pending formal approvals (plan §36)
 
 - Date / by: 2026-08-10 / setup session
