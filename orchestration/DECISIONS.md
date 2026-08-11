@@ -101,6 +101,29 @@ Format:
   exercise the full Parquet → pandas → torch pipeline.  `cudf-cu13` will be
   added and the NVIDIA package index configured in T4.
 
+## D-008 — Additional baseline pipeline package dependencies (S02)
+
+- Date / by: 2026-08-11 / S02 executor (P0), T3-T5
+- Context: S02 extends the `cobra-pipelines` package with heavier framework
+  dependencies needed for the three prototype workloads and their B1 variants
+  (plan §20.2, §20.3-D, §29).
+- Decision: Added the following pinned runtime dependencies to
+  `benchmarks/pipelines/pyproject.toml`:
+  - `torchvision==0.28.0` (BSD, published 2026-07-08) — used by
+    `cv_preprocess_inference_postprocess` for resnet18 weights.
+  - `nvidia-cuda-nvcc==13.0.88` (NVIDIA CUDA Toolkit license, published
+    2025-09-04) — makes the pip-wheel nvcc binary discoverable by
+    `torch.compile`/Inductor when no system CUDA toolkit is installed.
+  - `cudf-cu13==26.6.0` (NVIDIA RAPIDS license, published 2026-06-09) —
+    transparent `cudf.pandas` acceleration for the Parquet/dataframe workload
+    B1 variant.
+  All versions were published ≥7 days before use, co-resolvable with the
+  existing torch/numpy/pandas/pyarrow pins, and match the CUDA 13 pip-wheel
+  stack on the primary RTX 3080 host.
+- Consequences: B1 baselines can use `torch.compile` and `cudf.pandas` without
+  a system-wide CUDA toolkit; version pins are recorded in the package
+  manifest and `support-matrix.yaml`.
+
 ## D-003 — Pending formal approvals (plan §36)
 
 - Date / by: 2026-08-10 / setup session

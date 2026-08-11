@@ -95,6 +95,14 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   otherwise a later "reject unknown keys" pass reports a false-positive
   "unknown field" for legitimately-null optional fields.
 
+## Validation
+
+- [2026-08-11][S02 validation] A sprint Validation block must match the
+  current CLI's required arguments. A missing `--output` flag in the documented
+  `cobra-bench verify` command caused the validator's first reproduction attempt
+  to fail, even though the code was correct. Fix: keep the Validation block
+  synchronized with the actual CLI parser.
+
 ## Loop & process
 
 - [2026-08-11][S01 recovery] A session that completes a task and begins the next

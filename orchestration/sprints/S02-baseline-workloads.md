@@ -86,19 +86,21 @@ Cobra must beat at S05/S21.
 ## Validation
 
 ```bash
-uv run cobra-bench verify --suite benchmarks/suites/phase0.yaml --variants b0,b1
+uv run cobra-bench verify --suite benchmarks/suites/phase0.yaml \
+  --variants b0,b1 --output artifacts/correctness/phase0
 uv run cobra-bench run --suite benchmarks/suites/phase0.yaml \
-  --variants b0,b1 --phase warm --output artifacts/raw/phase0
-uv run cobra-bench analyze --input artifacts/raw/phase0 --output artifacts/analysis/phase0
+  --variants b0,b1 --phase warm --seed 42 --output artifacts/raw/phase0
+uv run cobra-bench analyze --input artifacts/raw/phase0 --output artifacts/analysis/phase0 \
+  --seed 42
 test -f docs/benchmarks/phase0-baseline.md
 ./scripts/check.sh
 ```
 
 ## Definition of Done
 
-- [ ] All tasks accepted; measurements from the recorded GPU host only
-- [ ] No §33.11 anti-pattern (validator will hunt for them)
-- [ ] STATE.md Environment filled; Session log updated; committed
+- [x] All tasks accepted; measurements from the recorded GPU host only
+- [x] No §33.11 anti-pattern (validator will hunt for them)
+- [x] STATE.md Environment filled; Session log updated; committed
 
 ## Handoff to next sprint
 
@@ -218,3 +220,19 @@ b1 numbers produced here — do not regenerate datasets after this sprint
     assertion; the fix preserves the same numerical output.
   - Nsight Systems CLI was not pre-installed; extracted the 2024.4.1 CLI-only
     `.deb` to `/tmp/nsys-root` and added the WSL2 timestamp workaround.
+
+**2026-08-11 — S02 validator (P1), sprint closed**
+- Reproduced the sprint Validation block (with corrected `--output`/`--seed 42`):
+  `cobra-bench verify` (b0,b1), warm `run`, `analyze`, and `./scripts/check.sh` all
+  pass. 180 raw samples, analysis artifacts, and Nsight traces are present.
+- Acceptance audit: all three workloads have b0/b1 variants; B1 uses
+  `torch.compile(mode=default, fullgraph=False)` and `cudf.pandas` (Parquet
+  workload) without manual restructuring; correctness oracles pass; report
+  answers "where does the time go" per workload with trace evidence.
+- Anti-gaming checks: no weakened tests, no disabled assertions, no `# type:
+  ignore` sprawl, no skipped tests, no benchmark anti-patterns (§33.11).
+- Minor process fixes applied: added missing `--output`/`--seed 42` to the
+  Validation block; added D-008 to `DECISIONS.md` for the S02 dependency
+  additions (`torchvision`, `nvidia-cuda-nvcc`, `cudf-cu13`).
+- Merged `sprint/S02-baseline-workloads` into `main`; ROADMAP ledger updated
+  to `done`. Next sprint: S03.
