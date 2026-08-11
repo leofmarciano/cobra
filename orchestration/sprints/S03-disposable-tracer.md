@@ -203,3 +203,10 @@ the JSON schema documented in the tracer README.
   tests, 187 package tests with 9 GPU tests deselected, and `git diff --check`.
   CodeQL upload remains owner-controlled because Advanced Security is disabled;
   awaiting that setting and Devin approval.
+
+- [2026-08-11][executor PR #45 CI follow-up 4] Diagnosed the remote config-lint
+  failure from run `31546559559`: `raven-actions/actionlint@v2.2.0` invokes
+  pipx, whose current backend rejects the workflow's `uv 0.7.14` because it
+  requires `uv >=0.9.17`. Updated `.github/workflows/ci.yml` to `uv 0.9.17`;
+  local config/docs/shell lint and `git diff --check` pass. The fix is ready to
+  push; CodeQL upload remains the only review thread intentionally open.
