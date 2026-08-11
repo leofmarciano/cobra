@@ -79,7 +79,11 @@ def handle_for(value: Any) -> str | None:
     if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
         return f"pandas:{id(value)}"
     if np is not None and isinstance(value, np.ndarray):
-        base = value.base if value.base is not None else value
+        base = value
+        seen: set[int] = set()
+        while isinstance(base.base, np.ndarray) and id(base) not in seen:
+            seen.add(id(base))
+            base = base.base
         return f"ndarray:{id(base)}"
     if isinstance(value, list | tuple | dict | set) and not _is_scalar_container(value):
         return f"opaque:{id(value)}"

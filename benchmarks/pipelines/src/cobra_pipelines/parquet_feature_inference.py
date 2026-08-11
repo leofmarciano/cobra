@@ -46,6 +46,32 @@ SEED_ENV = "COBRA_PARQUET_SEED"
 DEFAULT_N_ROWS = 100_000
 DEFAULT_SEED = 42
 _B1_WORKER_ENV = "COBRA_PARQUET_B1_WORKER"
+_B1_WORKER_ENV_KEYS = (
+    # Python/CUDA runtime configuration needed by the isolated child.
+    "PATH",
+    "PYTHONPATH",
+    "PYTHONUNBUFFERED",
+    "PYTHONIOENCODING",
+    "PYTHONUTF8",
+    "PYTHONHASHSEED",
+    "VIRTUAL_ENV",
+    "HOME",
+    "TMPDIR",
+    "TEMP",
+    "TMP",
+    "LD_LIBRARY_PATH",
+    "CUDA_HOME",
+    "CUDA_PATH",
+    "CUDA_VISIBLE_DEVICES",
+    "NVIDIA_VISIBLE_DEVICES",
+    "TORCH_CUDA_ARCH_LIST",
+    "TORCHINDUCTOR_CACHE_DIR",
+    "TRITON_CACHE_DIR",
+    # Benchmark inputs are intentionally forwarded as an explicit allowlist.
+    DATA_DIR_ENV,
+    N_ROWS_ENV,
+    SEED_ENV,
+)
 _B1_WORKER_CODE = """
 import contextlib
 import json
@@ -69,13 +95,17 @@ class _B1Worker:
     """Persistent child process that owns cuDF activation and CUDA state."""
 
     def __init__(self) -> None:
-        environment = os.environ.copy()
+        environment = {key: os.environ[key] for key in _B1_WORKER_ENV_KEYS if key in os.environ}
         environment[_B1_WORKER_ENV] = "1"
         self.process = subprocess.Popen(
             [sys.executable, "-u", "-c", _B1_WORKER_CODE],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            # The worker redirects diagnostic stdout here. Do not leave a
+            # PIPE undrained: a verbose compile would fill it and deadlock the
+            # child before it can emit its JSON response. Suppression also
+            # prevents raw diagnostic text from being copied into CI logs.
+            stderr=subprocess.DEVNULL,
             text=True,
             bufsize=1,
             env=environment,
@@ -383,7 +413,7 @@ def _mlp_scores_compiled(features: pd.DataFrame, seed: int) -> np.ndarray:
     if compiled_model is None:
         model = _SmallMLPCompiled(x.shape[1], seed).to(device)
         model.eval()
-        compiled_model = torch.compile(model, mode="default", fullgraph=False)
+        compiled_model = cast(nn.Module, torch.compile(model, mode="default", fullgraph=False))
         _COMPILED_MODELS[cache_key] = compiled_model
     with torch.inference_mode():
         out = compiled_model(x).squeeze(-1).to("cpu", dtype=torch.float64)

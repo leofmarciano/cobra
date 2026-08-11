@@ -24,8 +24,8 @@ dependencies = [
     "pyarrow==23.0.1",
     "torch==2.13.0",
     "torchvision==0.28.0",
-    "nvidia-cuda-nvcc==13.0.88",
-    "cudf-cu13==26.6.0",
+    "nvidia-cuda-nvcc==13.0.88; sys_platform == 'linux'",
+    "cudf-cu13==26.6.0; sys_platform == 'linux'",
 ]
 
 [tool.setuptools.packages.find]

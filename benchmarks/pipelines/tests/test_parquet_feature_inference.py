@@ -44,6 +44,7 @@ def test_b0_runs_and_returns_serializable_result() -> None:
     assert result1 == result2
 
 
+@pytest.mark.gpu
 def test_b1_runs_and_returns_serializable_result() -> None:
     """The b1 entrypoint must run end-to-end and return a deterministic dict."""
     os.environ["COBRA_PARQUET_SEED"] = "12345"
@@ -56,6 +57,7 @@ def test_b1_runs_and_returns_serializable_result() -> None:
     assert result1 == result2
 
 
+@pytest.mark.gpu
 def test_b1_produces_same_result_as_b0() -> None:
     """B1 must produce numerically equivalent results to B0 (same pipeline, just compiled)."""
     os.environ["COBRA_PARQUET_SEED"] = "12345"
@@ -109,6 +111,7 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
             return 0
 
     monkeypatch.setattr(parquet_feature_inference.subprocess, "Popen", FakeProcess)
+    monkeypatch.setenv("COBRA_TEST_SECRET", "must-not-cross-process-boundary")
 
     assert parquet_feature_inference.b1() == {"n_rows": 1}
     assert parquet_feature_inference.b1() == {"n_rows": 1}
@@ -117,6 +120,8 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
     worker_env = process.kwargs["env"]
     assert isinstance(worker_env, dict)
     assert worker_env[parquet_feature_inference._B1_WORKER_ENV] == "1"
+    assert "COBRA_TEST_SECRET" not in worker_env
+    assert process.kwargs["stderr"] == parquet_feature_inference.subprocess.DEVNULL
     assert process.stdin.writes == ["run\n", "run\n"]
 
     worker = parquet_feature_inference._B1_WORKER

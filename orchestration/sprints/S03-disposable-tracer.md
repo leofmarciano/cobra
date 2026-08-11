@@ -188,3 +188,18 @@ the JSON schema documented in the tracer README.
   recorder behavior. Validation passes: `./scripts/check.sh --ci`, 44 tracer
   tests, 5 parquet tests, and local actionlint. Awaiting the CodeQL setting and
   Devin approval.
+
+- [2026-08-11][executor PR #45 review follow-up 3] Closed the next review batch:
+  CI now runs the pipelines/tracer packages with GPU-only cases marked and
+  runs strict mypy for `cobra_pipelines`; CUDA-only dependencies are Linux
+  gated in the package and lockfile. Preserved root ndarray lineage across the
+  pandas/NumPy boundary, recorded mutation metadata so read-only views do not
+  become producers, and fenced opaque calls against all live frontiers. The
+  persistent parquet worker now uses an explicit environment allowlist and
+  `stderr=DEVNULL`, preventing diagnostic-pipe deadlocks and credential
+  propagation. Regenerated the doctor artifact, 180 raw timing samples,
+  statistical analysis, parquet Nsight traces/summaries, tracer reports, and
+  findings memo. Validation passes: `./scripts/check.sh --ci`, 48 tracer
+  tests, 187 package tests with 9 GPU tests deselected, and `git diff --check`.
+  CodeQL upload remains owner-controlled because Advanced Security is disabled;
+  awaiting that setting and Devin approval.

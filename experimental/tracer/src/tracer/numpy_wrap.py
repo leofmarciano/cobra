@@ -56,6 +56,7 @@ class TracedArray(np.ndarray):
             result=result,
             start_ns=start_ns,
             end_ns=end_ns,
+            extra_metadata={"mutates_inputs": raw_kwargs.get("out") is not None},
         )
         return _wrap(result)
 

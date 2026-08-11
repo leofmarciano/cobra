@@ -225,7 +225,9 @@ _TRACKED_PACKAGES: dict[str, str] = {
     "pytorch": "torch",
     "triton": "triton",
     "pandas": "pandas",
-    "cudf": "cudf",
+    # NVIDIA publishes the importable ``cudf`` module as the versioned
+    # ``cudf-cu13`` distribution used by the pipeline workspace.
+    "cudf": "cudf-cu13",
     "numpy": "numpy",
     "pyarrow": "pyarrow",
 }

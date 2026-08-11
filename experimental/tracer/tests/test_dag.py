@@ -84,6 +84,21 @@ def test_mutation_waits_for_intervening_reader() -> None:
     assert (1, 2, "order") in edges
 
 
+def test_read_only_alias_does_not_become_storage_producer() -> None:
+    events = [
+        _ev(0, "torch", "produce", outputs=("tensor:0",)),
+        _ev(1, "torch", "view", inputs=("tensor:0",), outputs=("tensor:0",)),
+        _ev(2, "torch", "read", inputs=("tensor:0",), outputs=("tensor:1",)),
+    ]
+
+    edges = _edges(build_dag(events))
+
+    assert (0, 1, "data") in edges
+    assert (0, 2, "data") in edges
+    assert (1, 2, "data") not in edges
+    assert (1, 2, "order") not in edges
+
+
 def test_opaque_node_gets_ordering_edges_to_neighbors() -> None:
     # Pure side-effect opaque nodes with no data dependencies to/from their
     # neighbors: only program-order edges should connect them.
@@ -96,6 +111,23 @@ def test_opaque_node_gets_ordering_edges_to_neighbors() -> None:
     edges = _edges(dag)
     assert (0, 1, "order") in edges
     assert (1, 2, "order") in edges
+
+
+def test_opaque_node_fences_all_live_branches() -> None:
+    events = [
+        _ev(0, "torch", "before_a", outputs=("tensor:a",)),
+        _ev(1, "torch", "before_b", outputs=("tensor:b",)),
+        _ev(2, "opaque", "opaque:unknown"),
+        _ev(3, "torch", "after_a", inputs=("tensor:a",), outputs=("tensor:a2",)),
+        _ev(4, "torch", "after_b", inputs=("tensor:b",), outputs=("tensor:b2",)),
+    ]
+
+    edges = _edges(build_dag(events))
+
+    assert (0, 2, "order") in edges
+    assert (1, 2, "order") in edges
+    assert (2, 3, "order") in edges
+    assert (2, 4, "order") in edges
 
 
 def test_isolated_nodes_are_roots_and_leaves() -> None:

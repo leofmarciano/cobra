@@ -69,6 +69,13 @@ class TracingTorchFunctionMode(TorchFunctionMode):
             result=result,
             start_ns=start_ns,
             end_ns=end_ns,
+            extra_metadata={"mutates_inputs": _mutates_inputs(func, kwargs)},
             skip_source_dirs=(_THIS_DIR,),
         )
         return result
+
+
+def _mutates_inputs(func: Any, kwargs: dict[str, Any]) -> bool:
+    """Recognize Torch in-place and explicit ``out=`` operations."""
+    name = getattr(func, "__name__", None) or getattr(func, "__qualname__", "")
+    return bool(name.endswith("_") or kwargs.get("out") is not None)

@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-uv run pytest test/python benchmarks/harness -q
+uv run pytest test/python benchmarks/harness benchmarks/pipelines experimental/tracer -q -m "not gpu"

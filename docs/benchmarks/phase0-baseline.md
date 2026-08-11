@@ -58,8 +58,10 @@ No manual restructuring was performed.
 
 ## Reproducing the measurements
 
-All artifacts were generated from commit `HEAD` of `sprint/S02-baseline-workloads`
-with the following commands:
+The timing artifacts were regenerated in the PR worktree after the persistent
+B1 worker/cache changes. The exact source revision and host are recorded in
+the Git history and `artifacts/environment/primary-host.json`. The commands
+were:
 
 ```bash
 # Correctness qualification (must pass before timing is valid per §33.4)
@@ -84,20 +86,22 @@ uv run cobra-bench analyze \
 ```
 
 Raw samples, analysis outputs, and Nsight Systems traces are committed under
-`artifacts/`.
+`artifacts/`. The B1 parquet trace profiles the persistent worker body
+directly (`_b1_inprocess`) so the isolated child is visible to Nsight Systems;
+the timing samples still use the public `b1()` entrypoint.
 
 ## Absolute timing results
 
 | Workload | Variant | Median (ms) | p95 (ms) | p99 (ms) | CV | Speedup vs B0 | 95% CI | Significant |
 |---|---|---:|---:|---:|---:|---:|---|---:|
-| parquet_feature_inference | b0 | 380.098 | 423.745 | 455.532 | 0.054 | 1.000x | [1.000x, 1.000x] | no |
-| parquet_feature_inference | b1 | 423.922 | 462.378 | 509.109 | 0.058 | 0.897x | [0.868x, 0.924x] | yes |
-| model_ensemble | b0 | 72.858 | 80.984 | 87.173 | 0.053 | 1.000x | [1.000x, 1.000x] | no |
-| model_ensemble | b1 | 77.156 | 81.771 | 89.100 | 0.044 | 0.944x | [0.928x, 0.961x] | yes |
-| cv_preprocess_inference_postprocess | b0 | 237.770 | 268.058 | 299.551 | 0.073 | 1.000x | [1.000x, 1.000x] | no |
-| cv_preprocess_inference_postprocess | b1 | 228.427 | 272.914 | 282.508 | 0.073 | 1.041x | [1.004x, 1.062x] | yes |
+| parquet_feature_inference | b0 | 46.337 | 54.483 | 55.587 | 0.077 | 1.000x | [1.000x, 1.000x] | no |
+| parquet_feature_inference | b1 | 51.531 | 61.302 | 63.372 | 0.091 | 0.899x | [0.835x, 0.950x] | yes |
+| model_ensemble | b0 | 87.443 | 92.707 | 93.133 | 0.033 | 1.000x | [1.000x, 1.000x] | no |
+| model_ensemble | b1 | 91.934 | 106.034 | 176.767 | 0.216 | 0.951x | [0.938x, 0.971x] | yes |
+| cv_preprocess_inference_postprocess | b0 | 234.842 | 267.084 | 271.083 | 0.052 | 1.000x | [1.000x, 1.000x] | no |
+| cv_preprocess_inference_postprocess | b1 | 238.323 | 304.130 | 311.052 | 0.102 | 0.985x | [0.971x, 1.021x] | no |
 
-**Suite geometric-mean speedup (B1 vs B0):** 0.959x — i.e. the automatic tools
+**Suite geometric-mean speedup (B1 vs B0):** 0.945x — i.e. the automatic tools
 are, on average, slightly slower than eager Python for these particular small
 workloads.  This is expected: the workloads are intentionally small and
 synchronous, so compilation and cudf acceleration overheads are not amortized.
@@ -106,20 +110,33 @@ The important product baseline is the B1 number Cobra must beat.
 ## Nsight Systems trace capture
 
 One representative iteration per workload×variant was profiled with Nsight
-Systems CLI 2024.4.1.  Because this host is WSL2, GPU-side timestamps were not
-reliably converted by default; the workaround documented by NVIDIA was applied:
+Systems CLI 2024.4.1. For the updated parquet pair, B0 was profiled through
+`b0()` and B1 through `_b1_inprocess()` with the worker environment marker set;
+this captures the code executed by the persistent child without folding child
+process startup into the trace. Because this host is WSL2, GPU-side timestamps
+were not reliably converted by default; the workaround documented by NVIDIA
+was applied:
 
 ```bash
 mkdir -p "$(dirname "$(nsys -z)")"
 echo "CuptiUseRawGpuTimestamps=false" > "$(nsys -z)"
 ```
 
-The trace command used for each variant was:
+The trace command used for ordinary variants was:
 
 ```bash
 nsys profile -t cuda,nvtx,osrt \
   -o artifacts/traces/phase0/<workload>-<variant> \
   <venv-python> -c "from cobra_pipelines.<workload> import <variant>; <variant>()"
+```
+
+For the isolated parquet B1 worker, the equivalent trace command was:
+
+```bash
+COBRA_PARQUET_B1_WORKER=1 nsys profile -t cuda,nvtx,osrt \
+  -o artifacts/traces/phase0/parquet_feature_inference-b1 \
+  <venv-python> -c \
+  "from cobra_pipelines.parquet_feature_inference import _b1_inprocess; _b1_inprocess()"
 ```
 
 Captured trace files:
@@ -152,34 +169,36 @@ nsys stats --report cuda_gpu_kern_sum --report cuda_api_sum --report osrt_sum \
 
 ### 1. parquet_feature_inference
 
-**Observation:** B1 is ~10% slower than B0 (423.9 ms vs 380.1 ms).  The B1 run
-uses `cudf.pandas` for dataframe operations and `torch.compile` for the MLP.
+**Observation:** B1 is ~11% slower than B0 (51.5 ms vs 46.3 ms). The persistent
+worker now keeps cuDF activation and the compiled MLP alive across warm samples,
+so this result no longer includes a fresh interpreter/compile for every sample.
+The B1 run uses `cudf.pandas` for dataframe operations and `torch.compile` for
+the MLP.
 
 **Where the time goes (from `parquet_feature_inference-b1.nsys-rep`):**
 
-- **CUDA API / library loading dominates:** the top CUDA API entries are
-  `cudaFree` (~146 ms across 2 calls), `cuLibraryLoadData` (~83 ms),
-  `cudaLaunchKernel` (~68 ms), `cudaMalloc` (~45 ms), and `cuModuleLoadData`
-  (~39 ms).  This indicates that the one-shot setup and teardown of cudf and
-  torch.compile Inductor kernels is a major fraction of the trace, even though
-  the actual dataframe work is short.
-- **GPU kernels are tiny:** total GPU kernel time is only ~2.3 ms.  The largest
-  kernels are the MLP `addmm`/`relu` (`triton_poi_fused_addmm_relu_0`, ~0.84 ms)
-  and the final gemv (~0.95 ms).  cudf accelerations appear as many very small
-  kernels (e.g. `cuco::detail::...contains_if_n`, ~46 µs).
-- **CPU dataframe work is the bulk of wall time:** only ~2 ms is spent in GPU
-  kernels, so the remaining ~420 ms is Parquet I/O, pandas/cudf parsing, and
-  feature engineering on the CPU.
+- **CUDA API / library loading dominates:** in the updated B1 worker trace,
+  `cuLibraryLoadData` takes ~141.6 ms, `cudaFree` ~141.4 ms,
+  `cudaLaunchKernel` ~105.8 ms, `cudaMalloc` ~46.1 ms, and host allocation
+  calls ~40.6 ms. These are initialization/teardown costs in the representative
+  worker invocation, not costs silently included in every warm sample.
+- **GPU kernels remain small:** the updated trace spends about 5.2 ms in GPU
+  kernels. The largest are cuDF Parquet string-offset preprocessing (~2.04 ms),
+  the MLP CUTLASS kernel (~0.93 ms), and the fused MLP addmm/relu (~0.82 ms).
+- **The warm wall-time gap is the dataframe/dispatch path:** persistent caching
+  removes repeated process and compilation setup from the measured samples, but
+  cuDF dispatch and Parquet feature work still cost more than the eager B0 path
+  for this small 100k-row workload.
 
 **Interpretation:** For 100k rows the dataframe path is not large enough to
-amortize cudf startup/library-loading costs, and the MLP is too small for
-`torch.compile` to pay for itself.  Cobra's opportunity here is to remove
-redundant library loading and fuse the CPU→GPU handoff, not to further optimize
-the already-fast GPU kernels.
+amortize cuDF dispatch costs, and the MLP is too small for `torch.compile` to
+pay for itself. Cobra's opportunity here is to keep the worker resident across
+larger batches and fuse the CPU→GPU handoff, not to further optimize the
+already-fast GPU kernels.
 
 ### 2. model_ensemble
 
-**Observation:** B1 is ~5% slower than B0 (77.2 ms vs 72.9 ms).  Both branches
+**Observation:** B1 is ~5% slower than B0 (91.9 ms vs 87.4 ms). Both branches
 (MLP and TransformerEncoder) are `torch.compile`d in B1.
 
 **Where the time goes (from `model_ensemble-b1.nsys-rep`):**
@@ -202,9 +221,9 @@ on the critical path and minimize fence operations.
 
 ### 3. cv_preprocess_inference_postprocess
 
-**Observation:** B1 is ~4% faster than B0 (228.4 ms vs 237.8 ms).  This is the
-only workload where the automatic tools show a gain, because the compiled
-resnet18 model is large enough to amortize compilation overhead.
+**Observation:** B1 is ~1.5% slower than B0 (238.3 ms vs 234.8 ms), and the
+95% interval crosses 1.0x. The compiled resnet18 path is close to parity for
+this sample set; no speedup is claimed.
 
 **Where the time goes (from `cv_preprocess_inference_postprocess-b1.nsys-rep`):**
 

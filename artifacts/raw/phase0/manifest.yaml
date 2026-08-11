@@ -1,0 +1,94 @@
+# Phase 0 baseline suite (S02).  Begins with workload 1 (parquet_feature_inference);
+# T2-T4 add model_ensemble, cv_preprocess_inference_postprocess, and the b1 variants.
+run_id: phase0-v0
+suite: phase0
+commit: "774c8ddd7db9ee734184e84936503cddac22463f"
+workload_commit: "774c8ddd7db9ee734184e84936503cddac22463f"
+container_digest: null
+
+host:
+  hostname_alias: DESKTOP-P3JA7HS
+  os: Linux 6.6.87.2-microsoft-standard-WSL2
+  kernel: 6.6.87.2-microsoft-standard-WSL2
+  cpu: Intel(R) Core(TM) i9-10900F CPU @ 2.80GHz
+  numa_nodes: 1
+  memory_gb: 15.62
+  manual: false
+
+cuda:
+  driver: "591.86"
+  toolkit: null
+  gpu_name: NVIDIA GeForce RTX 3080
+  gpu_uuid_hash: d568fd47914b117e
+  compute_capability: "8.6"
+  clocks_policy: "0x0000000000000001"
+  power_limit_watts: 320.0
+  persistence_mode: true
+  mig: "[N/A]"
+  manual: false
+
+software:
+  python: "3.13.12"
+  pytorch: "2.13.0"
+  triton: "3.7.1"
+  pandas: "2.3.3"
+  cudf: "26.6.0"
+  numpy: "2.4.6"
+  pyarrow: "23.0.1"
+  manual: false
+
+protocol:
+  warmup_policy: stability
+  minimum_samples: 30
+  configuration_order: randomized
+  correctness_required: true
+  confidence_interval: bootstrap-95
+
+correctness:
+  comparator: approx
+  equal_nan: true
+  rtol_by_dtype:
+    float64: 1.0e-5
+    float32: 1.0e-4
+    float16: 1.0e-2
+    bfloat16: 1.0e-2
+  atol_by_dtype:
+    float64: 1.0e-8
+    float32: 1.0e-6
+    float16: 1.0e-3
+    bfloat16: 1.0e-3
+
+workloads:
+  - name: parquet_feature_inference
+    input_fingerprint: parquet-feature-inference-v0
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.parquet_feature_inference:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on MLP +
+      # cudf.pandas install() if available (transparent acceleration)
+      - name: b1
+        entrypoint: "cobra_pipelines.parquet_feature_inference:b1"
+
+  - name: model_ensemble
+    input_fingerprint: model-ensemble-v0
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.model_ensemble:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on both MLP and Transformer
+      - name: b1
+        entrypoint: "cobra_pipelines.model_ensemble:b1"
+
+  - name: cv_preprocess_inference_postprocess
+    input_fingerprint: cv-preprocess-inference-postprocess-v0
+    correctness:
+      comparator: approx
+      rtol_by_dtype:
+        float: 1.0e-3
+      atol_by_dtype:
+        float: 1.0e-3
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b0"
+      # B1: torch.compile(mode=default, fullgraph=False) on resnet18 only
+      - name: b1
+        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b1"

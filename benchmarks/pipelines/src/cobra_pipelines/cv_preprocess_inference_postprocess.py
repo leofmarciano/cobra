@@ -19,10 +19,11 @@ element-wise with tolerances per the harness comparator.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
@@ -183,7 +184,7 @@ def _run_resnet18_compiled(preprocessed: torch.Tensor, device: torch.device) -> 
     model = models.resnet18(weights=weights).to(device)
     model.eval()
 
-    compiled_model = torch.compile(model, mode="default", fullgraph=False)
+    compiled_model = cast(nn.Module, torch.compile(model, mode="default", fullgraph=False))
 
     x = preprocessed.to(device)
     with torch.inference_mode():

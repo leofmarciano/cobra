@@ -23,11 +23,11 @@
   "software": {
     "python": "3.13.12",
     "manual": false,
-    "pytorch": null,
-    "triton": null,
-    "pandas": null,
-    "cudf": null,
-    "numpy": null,
-    "pyarrow": "19.0.1"
+    "pytorch": "2.13.0",
+    "triton": "3.7.1",
+    "pandas": "2.3.3",
+    "cudf": "26.6.0",
+    "numpy": "2.4.6",
+    "pyarrow": "23.0.1"
   }
 }

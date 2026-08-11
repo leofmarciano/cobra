@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import time
 
+import pytest
 from cobra_pipelines import cv_preprocess_inference_postprocess
 
 
+@pytest.mark.gpu
 def test_b0_runs_and_returns_deterministic_result() -> None:
     """The b0 entrypoint must run end-to-end and return the same dict twice."""
     result1 = cv_preprocess_inference_postprocess.b0()
@@ -22,6 +24,7 @@ def test_b0_runs_and_returns_deterministic_result() -> None:
     assert result1 == result2
 
 
+@pytest.mark.gpu
 def test_b0_result_contains_expected_keys() -> None:
     """The output dict must contain classification result keys."""
     result = cv_preprocess_inference_postprocess.b0()
@@ -57,6 +60,7 @@ def test_preprocessing_is_cpu_bound() -> None:
     )
 
 
+@pytest.mark.gpu
 def test_top_k_and_thresholding() -> None:
     """Postprocessing must return correct top-k classes with thresholding."""
     result = cv_preprocess_inference_postprocess.b0()
@@ -78,6 +82,7 @@ def test_top_k_and_thresholding() -> None:
     assert 0 <= result["n_above_threshold"] <= n_images
 
 
+@pytest.mark.gpu
 def test_b1_runs_and_returns_deterministic_result() -> None:
     """The b1 entrypoint must run end-to-end and return the same dict twice."""
     result1 = cv_preprocess_inference_postprocess.b1()
@@ -88,6 +93,7 @@ def test_b1_runs_and_returns_deterministic_result() -> None:
     assert result1 == result2
 
 
+@pytest.mark.gpu
 def test_b1_produces_same_result_as_b0() -> None:
     """B1 must produce numerically equivalent results to B0 (same pipeline, compiled).
 

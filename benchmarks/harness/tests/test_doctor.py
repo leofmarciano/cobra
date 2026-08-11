@@ -171,6 +171,11 @@ class TestCollectSoftwareInfo:
             assert key in info
             assert info[key] is None or isinstance(info[key], str)
 
+    def test_reports_versioned_cudf_distribution(self) -> None:
+        info = collect_software_info()
+        if info["cudf"] is not None:
+            assert info["cudf"] == "26.6.0"
+
 
 # ---------------------------------------------------------------------------
 # Strict mode validation

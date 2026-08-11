@@ -69,6 +69,7 @@ def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any]
             result=recorded_result,
             start_ns=start_ns,
             end_ns=end_ns,
+            extra_metadata={"mutates_inputs": name in {"__setitem__", "__delitem__"}},
         )
         return result
 
@@ -91,6 +92,7 @@ def _wrap_function(module: Any, name: str, session: TraceSession, op_prefix: str
             result=result,
             start_ns=start_ns,
             end_ns=end_ns,
+            extra_metadata={"mutates_inputs": kwargs.get("out") is not None},
         )
         return result
 

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
+from tracer.handles import handle_for
 from tracer.numpy_wrap import wrap
 from tracer.session import trace
 
@@ -37,3 +39,14 @@ def test_untraced_array_is_not_recorded() -> None:
         np.sum(plain)
 
     assert session.events == []
+
+
+def test_pandas_numpy_boundary_preserves_array_lineage() -> None:
+    with trace(enable_torch=False) as session:
+        array = pd.DataFrame({"a": [1.0, 2.0]}).to_numpy()
+        np.mean(array)
+
+    boundary = next(event for event in session.events if event.op == "pandas.DataFrame.to_numpy")
+    numpy_event = next(event for event in session.events if event.op == "numpy.mean")
+    assert handle_for(array) in boundary.output_handles
+    assert handle_for(array) in numpy_event.input_handles

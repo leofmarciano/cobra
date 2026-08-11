@@ -48,6 +48,12 @@ def test_ndarray_handle_shared_with_view() -> None:
     assert handle_for(arr) == handle_for(view)
 
 
+def test_ndarray_handle_shared_across_nested_views() -> None:
+    arr = np.zeros(4)
+    nested = arr[:3].view()
+    assert handle_for(arr) == handle_for(nested)
+
+
 def test_collect_handles_flattens_and_filters() -> None:
     t = torch.zeros(2)
     handles = collect_handles([1, "x", t, None])

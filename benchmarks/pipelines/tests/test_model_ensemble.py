@@ -7,6 +7,7 @@ T2 acceptance criteria:
 
 from __future__ import annotations
 
+import pytest
 import torch
 from cobra_pipelines import model_ensemble
 
@@ -107,6 +108,7 @@ def test_weighted_aggregation_is_correct() -> None:
     assert abs(result["ensemble_sum"] - float(np.sum(expected_ensemble))) < 1e-6
 
 
+@pytest.mark.gpu
 def test_b1_runs_and_returns_deterministic_result() -> None:
     """The b1 entrypoint must run end-to-end and return the same dict twice."""
     result1 = model_ensemble.b1()
@@ -117,6 +119,7 @@ def test_b1_runs_and_returns_deterministic_result() -> None:
     assert result1 == result2
 
 
+@pytest.mark.gpu
 def test_b1_produces_same_result_as_b0() -> None:
     """B1 must produce numerically equivalent results to B0 (same pipeline, compiled)."""
     b0_result = model_ensemble.b0()

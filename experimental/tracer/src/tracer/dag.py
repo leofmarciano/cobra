@@ -6,9 +6,9 @@ directed acyclic graph by value identity:
 * **data edges** connect the last producer of a handle to a consumer.
 * **order edges** connect successive producers of the same handle, modeling
   mutations that reuse a storage identity (``x.add_(...)``).
-* **order edges** also fence every unknown-effect (``opaque``) node against its
-  immediate predecessor and successor in program order, matching §6.3's
-  conservative treatment of graph breaks.
+* **order edges** fence every unknown-effect (``opaque``) node against the
+  live predecessor and successor frontiers, matching §6.3's conservative
+  treatment of graph breaks.
 
 The resulting graph is exported as JSON (for S10's later IR lowering) and as
 Graphviz DOT (for human review).
@@ -49,7 +49,15 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
                 edges.add((producer, eid, "data"))
             readers_since_write.setdefault(handle, set()).add(eid)
 
+        mutates_inputs = _event_mutates_inputs(event)
         for handle in event.output_handles:
+            # Storage identity is shared by read-only views (view/reshape/
+            # permute/detach and their equivalents). Those operations consume
+            # a value but do not replace its producer. In-place operations are
+            # marked by the adapter (or inferred from the conventional
+            # trailing-underscore name) and still advance the producer chain.
+            if handle in event.input_handles and not mutates_inputs:
+                continue
             previous = last_producer.get(handle)
             if previous is not None and previous != eid:
                 edges.add((previous, eid, "order"))
@@ -94,23 +102,59 @@ def _node_from_event(event: Event) -> dict[str, Any]:
     }
 
 
-def _add_opaque_ordering_edges(events: list[Event], edges: set[tuple[int, int, str]]) -> None:
-    """Add program-order edges between opaque nodes and their neighbors.
+def _event_mutates_inputs(event: Event) -> bool:
+    """Return whether an event writes storage already present in its inputs.
 
-    An ``opaque`` node is never assumed independent of surrounding code: it
-    gets a dashed ordering edge from its immediate predecessor and to its
-    immediate successor unless those neighbors are the same node.
+    Adapters set ``metadata['mutates_inputs']`` when they know the operation's
+    semantics. The name fallback keeps synthetic/manual events useful and
+    covers the conventional in-place Python/Torch spelling (``add_`` and
+    ``__setitem__``).
+    """
+    explicit = event.metadata.get("mutates_inputs")
+    if isinstance(explicit, bool):
+        return explicit
+    operation = event.op.rsplit(".", 1)[-1]
+    return operation.endswith("_")
+
+
+def _add_opaque_ordering_edges(events: list[Event], edges: set[tuple[int, int, str]]) -> None:
+    """Fence opaque nodes against every live program-order frontier.
+
+    An ``opaque`` node is never assumed independent of surrounding code. An
+    immediate-neighbor edge is insufficient when two independent branches
+    meet the opaque call, because one branch can otherwise remain unordered.
+    Connect every leaf in the prefix to the opaque node and the opaque node to
+    every root in the suffix. This is the smallest conservative frontier for
+    the partial dependency graph available at this stage.
     """
     if not events:
         return
-    opaque_ids = {e.id for e in events if e.kind == "opaque"}
     for idx, event in enumerate(events):
-        if event.id not in opaque_ids:
+        if event.kind != "opaque":
             continue
-        if idx > 0:
-            edges.add((events[idx - 1].id, event.id, "order"))
-        if idx < len(events) - 1:
-            edges.add((event.id, events[idx + 1].id, "order"))
+        prefix_ids = {candidate.id for candidate in events[:idx]}
+        suffix_ids = {candidate.id for candidate in events[idx + 1 :]}
+        prefix_leaves = _frontier_ids(prefix_ids, edges, leaves=True)
+        suffix_roots = _frontier_ids(suffix_ids, edges, leaves=False)
+        for predecessor in prefix_leaves:
+            edges.add((predecessor, event.id, "order"))
+        for successor in suffix_roots:
+            edges.add((event.id, successor, "order"))
+
+
+def _frontier_ids(
+    node_ids: set[int],
+    edges: set[tuple[int, int, str]],
+    *,
+    leaves: bool,
+) -> list[int]:
+    """Return leaves or roots of ``node_ids`` using the current graph edges."""
+    if not node_ids:
+        return []
+    linked = {
+        (src if leaves else dst) for src, dst, _kind in edges if src in node_ids and dst in node_ids
+    }
+    return sorted(node_ids - linked)
 
 
 def to_json(dag: dict[str, Any], *, indent: int | None = 2) -> str:

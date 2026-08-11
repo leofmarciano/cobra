@@ -27,12 +27,12 @@ torch MLP → projection.
 
 Observed from trace:
 
-* **Total recorded work:** 409.406 ms
-* **Critical path (span):** 260.439 ms
-* **Theoretical speedup:** 1.57x
-* **Transfer boundaries:** 6 host/device transfers totaling 137.471 ms; five
-  `cpu → cuda:0` transfers account for 137.080 ms.
-* **Dominant critical-path op:** `torch.TensorBase.to`, 136.209 ms (52.3% of
+* **Total recorded work:** 355.322 ms
+* **Critical path (span):** 232.131 ms
+* **Theoretical speedup:** 1.53x
+* **Transfer boundaries:** 6 host/device transfers totaling 114.128 ms; five
+  `cpu → cuda:0` transfers account for 113.793 ms.
+* **Dominant critical-path op:** `torch.TensorBase.to`, 112.984 ms (48.7% of
   the span).
 * **Parallel regions:** none detected.
 
@@ -69,16 +69,16 @@ TransformerEncoder) → weighted aggregation → CPU summary.
 
 Observed from trace:
 
-* **Total recorded work:** 200.145 ms
-* **Critical path (span):** 180.377 ms
-* **Theoretical speedup:** 1.11x
+* **Total recorded work:** 161.286 ms
+* **Critical path (span):** 146.298 ms
+* **Theoretical speedup:** 1.10x
 * **Top critical-path op:** `torch.nn.functional.multi_head_attention_forward`,
-  142.165 ms (78.8% of the span).
-* **Transfer boundaries:** 38 transfers totaling 3.378 ms.
-* **Candidate parallel regions:** 272 coarse fork/join candidates. The largest
-  reported candidate is a `torch._C._nn.linear` node 436 →
-  `torch.TensorBase.transpose` node 457 region, with only 18.641 us of
-  estimated overlap.
+  120.064 ms (82.1% of the span).
+* **Transfer boundaries:** 38 transfers totaling 4.645 ms.
+* **Candidate parallel regions:** 41 coarse fork/join candidates. The largest
+  reported candidate is a `torch.TensorBase.to` node 2 →
+  `torch.TensorBase.add` node 503 region, with only 1.469 ms of estimated
+  overlap.
 
 The source workload does contain two independent model calls, but this
 call-boundary trace does not yet isolate that high-level pair as one validated
@@ -113,17 +113,17 @@ on GPU → softmax/top-k → CPU summary.
 
 Observed from trace:
 
-* **Total recorded work:** 1.183 s
-* **Critical path (span):** 949.132 ms
-* **Theoretical speedup:** 1.25x
-* **Top critical-path operations:** `conv2d` at 491.940 ms and `linear` at
-  109.616 ms.
-* **Transfer boundaries:** 125 transfers totaling 75.177 ms; 123 are
-  `cpu → cuda:0` moves totaling 74.839 ms, and 2 return to CPU.
+* **Total recorded work:** 908.824 ms
+* **Critical path (span):** 648.763 ms
+* **Theoretical speedup:** 1.40x
+* **Top critical-path operations:** `conv2d` at 305.855 ms and `linear` at
+  90.759 ms.
+* **Transfer boundaries:** 125 transfers totaling 78.233 ms; 123 are
+  `cpu → cuda:0` moves totaling 77.982 ms, and 2 return to CPU.
 * **Device residency:** CPU preprocessing → GPU inference → CPU postprocessing,
   with the main GPU boundary at node 2421.
 * **Candidate parallel regions:** 1,939 coarse candidates. The top candidate
-  is a `relu` → `add_` region with 5.680 ms of estimated overlap, not a
+  is an `add_` → `add_` region with 6.467 ms of estimated overlap, not a
   validated end-to-end CPU/GPU pipeline overlap.
 
 ### Concrete opportunities
@@ -148,9 +148,9 @@ the whole program.
 
 | Workload | Span | Work/span | Dominant critical-path op | Cross-library opportunity |
 |---|---:|---:|---|---|
-| parquet_feature_inference | 260.439 ms | 1.57x | `torch.TensorBase.to` | pandas/cuDF → torch GPU handoff |
-| model_ensemble | 180.377 ms | 1.11x | `multi_head_attention_forward` | two model branches on separate streams |
-| cv_preprocess_inference_postprocess | 949.132 ms | 1.25x | `conv2d` | CPU preprocessing ↔ GPU inference pipeline |
+| parquet_feature_inference | 232.131 ms | 1.53x | `torch.TensorBase.to` | pandas/cuDF → torch GPU handoff |
+| model_ensemble | 146.298 ms | 1.10x | `multi_head_attention_forward` | two model branches on separate streams |
+| cv_preprocess_inference_postprocess | 648.763 ms | 1.40x | `conv2d` | CPU preprocessing ↔ GPU inference pipeline |
 
 The parquet handoff and the model-ensemble branch schedule remain promising
 S04 high-risk experiments because they cross pandas/NumPy/torch or separate

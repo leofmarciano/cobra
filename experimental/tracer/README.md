@@ -35,9 +35,9 @@ libraries:
   `TracedArray`-wrapped ndarrays (`tracer.numpy_wrap.wrap`); tracing
   propagates through chains of numpy calls because results are re-wrapped.
 - **opaque** (`tracer.opaque`) — explicit wrapper (`opaque()` decorator or
-  `call_opaque()`) for anything else. Opaque nodes get conservative
-  ordering edges to their neighbors in the DAG builder (S03-T2), never
-  assumed independence (plan §6.3 spirit).
+  `call_opaque()`) for anything else. Opaque nodes get conservative ordering
+  edges to every live program-order frontier in the DAG builder (S03-T2),
+  never assumed independent (plan §6.3 spirit).
 
 Each recorded `Event` (`tracer.events.Event`) captures: op name, an
 args/kwargs summary, value-identity handles for inputs/outputs
