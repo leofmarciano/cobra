@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 review/CI follow-up complete (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review/CI follow-up in progress (executor session)
 
 ## Now
 
@@ -12,13 +12,13 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | (none — all tasks accepted) |
+| Current task | Resolve remaining PR #45 review findings and CI/security gates |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Run P1 (Validator) to close S03 |
+| Next action | Owner enables Advanced Security; rerun CodeQL with upload enabled and await Devin approval |
 
 ## Blockers
 
-- (none)
+- GitHub CodeQL upload is disabled because this private repository reports no `security_and_analysis` setting; enabling it is an owner-controlled gate. The workflow keeps analysis source-backed and documents the required `upload: true` follow-up.
 
 ## Human-input queue
 
@@ -28,6 +28,8 @@ Items an executor needs from the owner; answer by editing this list.
       Orca automation environment authenticates fine; the "Not logged in"
       was an artifact of a sandboxed review shell only. Not a blocker.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
+- [ ] Enable Advanced Security for `leofmarciano/cobra`; then set
+      `.github/workflows/security.yml` to `upload: true` and rerun Security.
 - [x] ~~Linux + NVIDIA GPU host details~~ — resolved 2026-08-11: this WSL
       session has direct access to an NVIDIA GeForce RTX 3080 (driver 591.86,
       compute cap 8.6, 10 GiB). CUDA toolkit presence verified by T0 (see
@@ -53,13 +55,14 @@ Items an executor needs from the owner; answer by editing this list.
 |---|---|---|
 | 2026-08-11 | S03 executor (P0), T3/T4 complete | Added `experimental/tracer/src/tracer/analysis.py` (`analyze`: critical path, work/span speedup, top-5 critical ops, host/device transfer boundaries, coarse CPU/GPU device timeline, fork/join parallel regions) and `reports.py`/`run.py` CLI to emit Markdown + Graphviz DOT reports for all three workloads. Added `experimental/tracer/tests/test_analysis.py` (8 tests). Generated `experimental/tracer/reports/{parquet_feature_inference,model_ensemble,cv_preprocess_inference_postprocess}.{md,dot}` and `docs/benchmarks/phase0-tracer-findings.md`. Key findings: parquet feature-to-GPU transfer dominates critical path (~50 %); model_ensemble has a named independent-branch parallel region (~12–17 % span-reduction opportunity); CV shows CPU→GPU→CPU phase boundaries and ~44 ms of per-weight host→device transfers in resnet18. Validation commands and `./scripts/check.sh` pass. Sprint `needs_validation`; next prompt is P1. |
 | 2026-08-11 | S03 executor (P0), T2 complete | Added `experimental/tracer/src/tracer/dag.py` (`build_dag`, `to_json`, `to_dot`): data edges from last producer of a value-identity handle to consumers; order edges between successive producers of the same handle (mutation ordering) and around unknown-effect opaque nodes (plan §6.3 spirit). Added 7 DAG unit tests covering chain, fan-out/fan-in, mutation-forces-ordering, opaque neighbor fencing, isolated roots/leaves, JSON/DOT export. Updated `tracer/__init__.py` exports and documented the JSON schema in the tracer README. Tracer suite now 26 tests pass; `./scripts/check.sh` passes. T2 checked off; sprint `in_progress`, next is T3. |
-| 2026-08-11 | S03 executor (PR #45 review follow-up) | Fixed all reported review/CI issues: strict integer correctness, single-load verification, workload-local tolerances, deterministic example warmup, cuDF process isolation, nested/mutating DAG dependencies, earliest joins, branch accounting, NumPy boundaries, CUDA completion timing, and source-backed CodeQL. `./scripts/check.sh --ci`, 41 tracer tests, and 17 pipeline tests pass. Sprint remains `needs_validation`; next prompt is P1. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up) | Fixed the second review batch: persistent isolated cuDF worker with compile caching, pandas mutation/function boundaries, generation-aware tensor allocation handles, `equal_nan`/atol-only correctness, memoized reachability, and source-backed CodeQL language detection. `./scripts/check.sh --ci`, 44 tracer tests, and 5 parquet tests pass. Awaiting the owner-controlled CodeQL upload gate and Devin approval. |
 
 ## Notes for the next session
 
-- S03 is complete from the executor's point of view; all tasks T1–T4 accepted
-  and the validation commands pass. Branch `sprint/S03-disposable-tracer`
-  contains the corrected reports, findings memo, and review/CI fixes.
+- S03 tasks T1–T4 are complete, but PR #45 review follow-up remains open until
+  the CodeQL upload gate is enabled and Devin approves the final head. Branch
+  `sprint/S03-disposable-tracer` contains the corrected reports, findings memo,
+  and review/CI fixes.
 - Next prompt is `P1-validate.md`: an independent Validator session must
   verify the work, run `./scripts/check.sh`, and either close the sprint or
   reopen with blockers.

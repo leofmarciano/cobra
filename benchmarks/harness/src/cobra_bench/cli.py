@@ -241,6 +241,7 @@ def _run_verify(args: argparse.Namespace) -> int:
                 comparator=comparator,
                 rtol_by_dtype=correctness.rtol_by_dtype,
                 atol_by_dtype=correctness.atol_by_dtype,
+                equal_nan=bool(correctness.equal_nan),
             )
         )
     write_correctness_report(reports, Path(args.output))

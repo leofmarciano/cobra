@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tracer.analysis as analysis_module
 from tracer.analysis import analyze
 from tracer.dag import build_dag
 from tracer.events import Event
@@ -186,6 +187,24 @@ def test_no_parallel_region_for_sequential_chain() -> None:
     ]
     result = analyze(build_dag(events))
     assert result["parallel_regions"] == []
+
+
+def test_reachability_cache_reuses_traversals(monkeypatch) -> None:
+    calls = 0
+    original = analysis_module._reachable
+
+    def counted(start, succs):
+        nonlocal calls
+        calls += 1
+        return original(start, succs)
+
+    monkeypatch.setattr(analysis_module, "_reachable", counted)
+    succs = {0: {1}, 1: {2}, 2: set()}
+    cache = {}
+
+    assert analysis_module._reachable_cached(0, succs, cache) == {0, 1, 2}
+    assert analysis_module._reachable_cached(0, succs, cache) == {0, 1, 2}
+    assert calls == 1
 
 
 def test_device_timeline_reports_devices() -> None:

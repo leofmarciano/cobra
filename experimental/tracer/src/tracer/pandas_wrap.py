@@ -23,6 +23,7 @@ from tracer.session import TraceSession
 # implement them for DataFrame/Series.
 _DATAFRAME_METHODS = (
     "__getitem__",  # column projection / boolean filtering
+    "__setitem__",  # in-place column mutation
     "assign",
     "astype",
     "fillna",
@@ -34,13 +35,15 @@ _DATAFRAME_METHODS = (
     "to_numpy",
 )
 _SERIES_METHODS = (
+    "__add__",
+    "__mul__",
     "astype",
     "fillna",
     "dropna",
     "sort_values",
     "to_numpy",
 )
-_MODULE_FUNCTIONS = ("read_parquet",)
+_MODULE_FUNCTIONS = ("concat", "get_dummies", "read_parquet")
 
 
 def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any] | None:
@@ -54,12 +57,16 @@ def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any]
         end_ns = session.clock()
         if isinstance(result, np.ndarray):
             result = wrap_numpy(result)
+        recorded_result = self if name == "__setitem__" else result
         session.record(
             "pandas",
             f"pandas.{cls.__name__}.{name}",
             args=(self, *args),
             kwargs=kwargs,
-            result=result,
+            # ``DataFrame.__setitem__`` returns None, but mutates ``self``.
+            # Record the mutated frame as the output so the DAG can fence the
+            # write against readers and later mutations of that same frame.
+            result=recorded_result,
             start_ns=start_ns,
             end_ns=end_ns,
         )

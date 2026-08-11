@@ -145,3 +145,22 @@ def test_workload_correctness_overrides_global_profile() -> None:
     assert correctness.comparator == "approx"
     assert correctness.rtol_by_dtype == {"float64": 1e-5, "float": 1e-3}
     assert correctness.atol_by_dtype == {"float64": 1e-8, "float": 1e-3}
+
+
+def test_workload_correctness_preserves_global_equal_nan_when_unspecified() -> None:
+    manifest = manifest_from_dict(
+        {
+            "run_id": "r1",
+            "suite": "s1",
+            "correctness": {"comparator": "approx", "equal_nan": False},
+            "workloads": [
+                {
+                    "name": "w1",
+                    "correctness": {"rtol_by_dtype": {"float": 1e-3}},
+                    "variants": [],
+                }
+            ],
+        }
+    )
+
+    assert manifest.correctness_for(manifest.workloads[0]).equal_nan is False

@@ -175,3 +175,16 @@ the JSON schema documented in the tracer README.
   memo, and removed unsupported empty-C++/CodeQL upload paths from CI.
   Validation passes: `./scripts/check.sh --ci`, 41 tracer tests, and 17
   pipeline tests. Sprint remains `needs_validation`; next prompt is P1.
+
+- [2026-08-11][executor PR #45 review follow-up 2] Added regression tests and
+  fixes for the second review batch: one persistent cuDF-isolated worker with
+  cached compiled models, pandas `__setitem__`/Series arithmetic/`get_dummies`/
+  `concat` boundaries, generation-aware tensor allocation handles, propagated
+  `equal_nan` and tolerance-map merging, and memoized reachability in parallel
+  region analysis. Made CodeQL language detection source-backed so C++/CUDA is
+  included automatically when native sources land; upload remains disabled
+  only because the private repository's Advanced Security setting is off and
+  requires owner approval. Regenerated tracer reports/findings from the new
+  recorder behavior. Validation passes: `./scripts/check.sh --ci`, 44 tracer
+  tests, 5 parquet tests, and local actionlint. Awaiting the CodeQL setting and
+  Devin approval.

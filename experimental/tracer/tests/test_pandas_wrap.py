@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from tracer.dag import build_dag
 from tracer.session import trace
 
 
@@ -46,3 +47,27 @@ def test_to_numpy_crosses_into_numpy_tracing() -> None:
         np.mean(array)
 
     assert any(event.kind == "numpy" and event.op.endswith("mean") for event in session.events)
+
+
+def test_records_feature_engineering_mutations_and_module_functions() -> None:
+    with trace(enable_torch=False, enable_numpy=False) as session:
+        df = pd.DataFrame({"a": [1.0, 2.0], "category": ["x", "y"]})
+        df["interaction"] = df["a"] * 2.0 + 1.0
+        one_hot = pd.get_dummies(df["category"], dtype=np.float64)
+        pd.concat([df, one_hot], axis=1)
+
+    ops = [event.op for event in session.events]
+    assert "pandas.DataFrame.__setitem__" in ops
+    assert "pandas.Series.__mul__" in ops
+    assert "pandas.Series.__add__" in ops
+    assert "pandas.get_dummies" in ops
+    assert "pandas.concat" in ops
+
+    assignment = next(
+        event for event in session.events if event.op == "pandas.DataFrame.__setitem__"
+    )
+    from tracer.handles import handle_for
+
+    assert handle_for(df) in assignment.output_handles
+    dag = build_dag(session.events)
+    assert any(edge["from"] != edge["to"] and edge["to"] == assignment.id for edge in dag["edges"])

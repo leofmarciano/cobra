@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -151,6 +152,31 @@ class TestBuildOracle:
         )
 
         assert oracle({"n_rows": 100_001}) is False
+
+    def test_approx_equal_nan_respects_manifest_setting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        workload = WorkloadSpec(name="nan", variants=[])
+        variant = VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a")
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: {"value": math.nan})
+        accepts_nan = build_oracle(workload, variant, comparator="approx", equal_nan=True)
+        rejects_nan = build_oracle(workload, variant, comparator="approx", equal_nan=False)
+
+        assert accepts_nan({"value": math.nan}) is True
+        assert rejects_nan({"value": math.nan}) is False
+
+    def test_approx_uses_atol_only_dtype_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        expected = {"value": 1.0}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="atol", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float64": 0.0},
+            atol_by_dtype={"float": 0.1},
+        )
+
+        assert oracle({"value": 1.05}) is True
 
 
 def test_verify_reuses_loaded_baseline(monkeypatch: pytest.MonkeyPatch) -> None:

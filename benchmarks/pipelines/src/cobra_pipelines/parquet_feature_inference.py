@@ -19,12 +19,14 @@ compared exactly (plan §33.4).
 
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -44,11 +46,111 @@ SEED_ENV = "COBRA_PARQUET_SEED"
 DEFAULT_N_ROWS = 100_000
 DEFAULT_SEED = 42
 _B1_WORKER_ENV = "COBRA_PARQUET_B1_WORKER"
-_B1_WORKER_CODE = (
-    "import json; "
-    "from cobra_pipelines.parquet_feature_inference import _b1_inprocess; "
-    "print(json.dumps(_b1_inprocess(), sort_keys=True))"
-)
+_B1_WORKER_CODE = """
+import contextlib
+import json
+import sys
+
+from cobra_pipelines.parquet_feature_inference import _b1_inprocess
+
+for command in sys.stdin:
+    if command.strip() != "run":
+        continue
+    try:
+        with contextlib.redirect_stdout(sys.stderr):
+            result = _b1_inprocess()
+        print(json.dumps(result, sort_keys=True), flush=True)
+    except BaseException as exc:
+        print(json.dumps({"__cobra_error__": f"{type(exc).__name__}: {exc}"}), flush=True)
+"""
+
+
+class _B1Worker:
+    """Persistent child process that owns cuDF activation and CUDA state."""
+
+    def __init__(self) -> None:
+        environment = os.environ.copy()
+        environment[_B1_WORKER_ENV] = "1"
+        self.process = subprocess.Popen(
+            [sys.executable, "-u", "-c", _B1_WORKER_CODE],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            env=environment,
+        )
+        self._lock = threading.Lock()
+
+    def run(self) -> dict[str, Any]:
+        """Execute one request while keeping the interpreter and GPU warm."""
+        with self._lock:
+            if self.process.poll() is not None:
+                raise RuntimeError(f"isolated parquet B1 exited: {self._stderr_detail()}")
+            if self.process.stdin is None or self.process.stdout is None:
+                raise RuntimeError("isolated parquet B1 worker pipes are unavailable")
+            try:
+                self.process.stdin.write("run\n")
+                self.process.stdin.flush()
+                line = self.process.stdout.readline()
+            except (BrokenPipeError, OSError) as exc:
+                raise RuntimeError(f"isolated parquet B1 worker failed: {exc}") from exc
+            if not line:
+                raise RuntimeError(
+                    f"isolated parquet B1 returned no result: {self._stderr_detail()}"
+                )
+            try:
+                result = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("isolated parquet B1 returned invalid JSON") from exc
+            if isinstance(result, dict) and "__cobra_error__" in result:
+                raise RuntimeError(f"isolated parquet B1 failed: {result['__cobra_error__']}")
+            if not isinstance(result, dict):
+                raise RuntimeError("isolated parquet B1 returned a non-object result")
+            return cast(dict[str, Any], result)
+
+    def _stderr_detail(self) -> str:
+        if self.process.stderr is None:
+            return ""
+        try:
+            return self.process.stderr.read().strip()
+        except OSError:
+            return ""
+
+    def close(self) -> None:
+        """Stop the worker when the parent process exits or the test resets it."""
+        with self._lock:
+            if self.process.poll() is not None:
+                return
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+
+
+_B1_WORKER: _B1Worker | None = None
+_B1_WORKER_CREATION_LOCK = threading.Lock()
+
+
+def _get_b1_worker() -> _B1Worker:
+    global _B1_WORKER
+    with _B1_WORKER_CREATION_LOCK:
+        if _B1_WORKER is None:
+            _B1_WORKER = _B1Worker()
+        return _B1_WORKER
+
+
+def _close_b1_worker() -> None:
+    global _B1_WORKER
+    worker = _B1_WORKER
+    _B1_WORKER = None
+    if worker is not None:
+        worker.close()
+
+
+atexit.register(_close_b1_worker)
 
 
 def _pandas_module() -> Any:
@@ -264,6 +366,9 @@ class _SmallMLPCompiled(nn.Module):
         return cast(torch.Tensor, self.fc2(torch.relu(self.fc1(x))))
 
 
+_COMPILED_MODELS: dict[tuple[int, int, str], nn.Module] = {}
+
+
 def _mlp_scores_compiled(features: pd.DataFrame, seed: int) -> np.ndarray:
     """Convert features to a torch tensor and run a torch.compiled MLP."""
     from cobra_pipelines._compile_env import ensure_nvcc_in_path
@@ -273,9 +378,13 @@ def _mlp_scores_compiled(features: pd.DataFrame, seed: int) -> np.ndarray:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     x = torch.from_numpy(features.to_numpy(dtype=np.float64)).to(device, dtype=torch.float64)
-    model = _SmallMLPCompiled(x.shape[1], seed).to(device)
-    model.eval()
-    compiled_model = torch.compile(model, mode="default", fullgraph=False)
+    cache_key = (int(x.shape[1]), seed, str(device))
+    compiled_model = _COMPILED_MODELS.get(cache_key)
+    if compiled_model is None:
+        model = _SmallMLPCompiled(x.shape[1], seed).to(device)
+        model.eval()
+        compiled_model = torch.compile(model, mode="default", fullgraph=False)
+        _COMPILED_MODELS[cache_key] = compiled_model
     with torch.inference_mode():
         out = compiled_model(x).squeeze(-1).to("cpu", dtype=torch.float64)
         return cast(np.ndarray, out.numpy())
@@ -328,31 +437,16 @@ def _b1_inprocess() -> dict[str, Any]:
 
 
 def _run_b1_isolated() -> dict[str, Any]:
-    """Run the cuDF variant in a child process so B0 remains plain pandas."""
-    environment = os.environ.copy()
-    environment[_B1_WORKER_ENV] = "1"
-    process = subprocess.run(
-        [sys.executable, "-c", _B1_WORKER_CODE],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=environment,
-    )
-    if process.returncode != 0:
-        detail = process.stderr.strip() or process.stdout.strip()
-        raise RuntimeError(f"isolated parquet B1 failed: {detail}")
-    try:
-        result = json.loads(process.stdout)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError("isolated parquet B1 returned invalid JSON") from exc
-    if not isinstance(result, dict):
-        raise RuntimeError("isolated parquet B1 returned a non-object result")
-    return cast(dict[str, Any], result)
+    """Run B1 in one persistent child so warm samples exclude process startup."""
+    return _get_b1_worker().run()
 
 
 def b1() -> dict[str, Any]:
     """B1: torch.compile + cudf.pandas, isolated from other variants."""
-    if _cudf_pandas_available() and os.environ.get(_B1_WORKER_ENV) != "1":
+    # Keep even the availability check inside the child: importing cuDF in the
+    # parent can initialize framework/CUDA state before B0 runs. The worker
+    # falls back to ordinary pandas when cuDF is not installed.
+    if os.environ.get(_B1_WORKER_ENV) != "1":
         return _run_b1_isolated()
     return _b1_inprocess()
 

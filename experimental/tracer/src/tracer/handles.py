@@ -9,6 +9,8 @@ to connect producer/consumer events correctly even across views.
 
 from __future__ import annotations
 
+import threading
+import weakref
 from collections.abc import Mapping
 from typing import Any
 
@@ -28,6 +30,42 @@ except ImportError:  # pragma: no cover
     np = None  # type: ignore[assignment]
 
 
+# ``data_ptr()`` identifies an address, not an allocation lifetime: PyTorch's
+# allocator can recycle an address after the previous tensor is destroyed.
+# ``UntypedStorage._cdata`` identifies the live StorageImpl.  The generation
+# counter handles the rare case where even that native identity is recycled,
+# while the weak reference lets simultaneously-live views retain one handle.
+_tensor_storage_generations: dict[int, tuple[weakref.ReferenceType[Any], int]] = {}
+_tensor_storage_lock = threading.Lock()
+
+
+def tensor_storage_identity(value: Any) -> str | None:
+    """Return a generation-aware identity for a tensor's live allocation.
+
+    Views share the same ``UntypedStorage``/StorageImpl and therefore the same
+    identity.  Once that storage is gone, a reused native key receives a new
+    generation instead of aliasing the old value in the dependency DAG.
+    """
+    if torch is None or not isinstance(value, torch.Tensor):
+        return None
+    try:
+        storage = value.untyped_storage()
+        raw_key = getattr(storage, "_cdata", None)
+        key = int(raw_key) if raw_key is not None else id(storage)
+        with _tensor_storage_lock:
+            previous = _tensor_storage_generations.get(key)
+            if previous is None:
+                generation = 0
+            elif previous[0]() is None:
+                generation = previous[1] + 1
+            else:
+                generation = previous[1]
+            _tensor_storage_generations[key] = (weakref.ref(storage), generation)
+        return f"{key}:{generation}"
+    except (AttributeError, RuntimeError, NotImplementedError, TypeError):
+        return f"obj:{id(value)}"
+
+
 def handle_for(value: Any) -> str | None:
     """Return a stable value-identity handle for ``value``, or ``None``.
 
@@ -36,11 +74,8 @@ def handle_for(value: Any) -> str | None:
     omit them from ``input_handles``/``output_handles``.
     """
     if torch is not None and isinstance(value, torch.Tensor):
-        try:
-            storage = value.untyped_storage()
-            return f"tensor:{storage.data_ptr()}"
-        except (RuntimeError, NotImplementedError):
-            return f"tensor:obj:{id(value)}"
+        identity = tensor_storage_identity(value)
+        return f"tensor:{identity}" if identity is not None else f"tensor:obj:{id(value)}"
     if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
         return f"pandas:{id(value)}"
     if np is not None and isinstance(value, np.ndarray):

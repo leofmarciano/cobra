@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import torch
-from tracer.handles import collect_handles, handle_for
+from tracer.handles import collect_handles, handle_for, tensor_storage_identity
 
 
 def test_scalar_has_no_handle() -> None:
@@ -24,6 +24,15 @@ def test_tensor_handle_differs_across_storages() -> None:
     a = torch.zeros(4)
     b = torch.zeros(4)
     assert handle_for(a) != handle_for(b)
+
+
+def test_tensor_storage_identity_tracks_allocation_lifetime() -> None:
+    tensor = torch.zeros(4)
+    view = tensor.view(-1)
+    other = torch.zeros(4)
+
+    assert tensor_storage_identity(tensor) == tensor_storage_identity(view)
+    assert tensor_storage_identity(tensor) != tensor_storage_identity(other)
 
 
 def test_dataframe_handle_is_object_identity() -> None:

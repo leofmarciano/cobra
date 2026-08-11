@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import subprocess
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 from cobra_pipelines import parquet_feature_inference
@@ -69,24 +69,56 @@ def test_b1_produces_same_result_as_b0() -> None:
 
 
 def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The cuDF variant must execute outside the B0 interpreter process."""
+    """The cuDF variant reuses one isolated worker across timed samples."""
     monkeypatch.setattr(parquet_feature_inference, "_cudf_pandas_available", lambda: True)
     monkeypatch.delenv(parquet_feature_inference._B1_WORKER_ENV, raising=False)
-    seen: dict[str, object] = {}
+    monkeypatch.setattr(parquet_feature_inference, "_B1_WORKER", None)
 
-    def fake_run(command, **kwargs):
-        seen["command"] = command
-        seen["env"] = kwargs["env"]
-        return subprocess.CompletedProcess(
-            command,
-            0,
-            stdout=json.dumps({"n_rows": 1}),
-            stderr="",
-        )
+    class FakePipe:
+        def __init__(self) -> None:
+            self.writes: list[str] = []
 
-    monkeypatch.setattr(parquet_feature_inference.subprocess, "run", fake_run)
+        def write(self, value: str) -> None:
+            self.writes.append(value)
+
+        def flush(self) -> None:
+            return None
+
+        def readline(self) -> str:
+            return json.dumps({"n_rows": 1}) + "\n"
+
+    class FakeProcess:
+        instances: ClassVar[list[FakeProcess]] = []
+
+        def __init__(self, command, **kwargs) -> None:
+            self.command = command
+            self.kwargs = kwargs
+            self.stdin = FakePipe()
+            self.stdout = FakePipe()
+            self.stderr = FakePipe()
+            self.returncode = None
+            self.__class__.instances.append(self)
+
+        def poll(self) -> None:
+            return None
+
+        def terminate(self) -> None:
+            self.returncode = 0
+
+        def wait(self, timeout: float | None = None) -> int:
+            return 0
+
+    monkeypatch.setattr(parquet_feature_inference.subprocess, "Popen", FakeProcess)
 
     assert parquet_feature_inference.b1() == {"n_rows": 1}
-    worker_env = seen["env"]
+    assert parquet_feature_inference.b1() == {"n_rows": 1}
+    assert len(FakeProcess.instances) == 1
+    process = FakeProcess.instances[0]
+    worker_env = process.kwargs["env"]
     assert isinstance(worker_env, dict)
     assert worker_env[parquet_feature_inference._B1_WORKER_ENV] == "1"
+    assert process.stdin.writes == ["run\n", "run\n"]
+
+    worker = parquet_feature_inference._B1_WORKER
+    assert worker is not None
+    worker.close()

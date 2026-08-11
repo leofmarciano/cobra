@@ -96,7 +96,9 @@ class CorrectnessInfo:
     comparator: str | None = None
     rtol_by_dtype: dict[str, float] = field(default_factory=dict)
     atol_by_dtype: dict[str, float] = field(default_factory=dict)
-    equal_nan: bool = True
+    # ``None`` means that a workload override did not specify a value.  The
+    # effective global default is applied by ``BenchmarkManifest.correctness_for``.
+    equal_nan: bool | None = None
 
 
 @dataclass
@@ -138,18 +140,19 @@ class BenchmarkManifest:
         """Return global correctness settings merged with workload overrides."""
         base = self.correctness or CorrectnessInfo()
         override = workload.correctness
+        equal_nan = base.equal_nan if base.equal_nan is not None else True
         if override is None:
             return CorrectnessInfo(
                 comparator=base.comparator,
                 rtol_by_dtype=dict(base.rtol_by_dtype),
                 atol_by_dtype=dict(base.atol_by_dtype),
-                equal_nan=base.equal_nan,
+                equal_nan=equal_nan,
             )
         return CorrectnessInfo(
             comparator=override.comparator if override.comparator is not None else base.comparator,
             rtol_by_dtype={**base.rtol_by_dtype, **override.rtol_by_dtype},
             atol_by_dtype={**base.atol_by_dtype, **override.atol_by_dtype},
-            equal_nan=override.equal_nan,
+            equal_nan=override.equal_nan if override.equal_nan is not None else equal_nan,
         )
 
 
@@ -320,7 +323,13 @@ def _build_protocol(raw: Any, path: str, errors: list[str]) -> ProtocolInfo:
     return info
 
 
-def _build_correctness(raw: Any, path: str, errors: list[str]) -> CorrectnessInfo | None:
+def _build_correctness(
+    raw: Any,
+    path: str,
+    errors: list[str],
+    *,
+    default_equal_nan: bool | None = True,
+) -> CorrectnessInfo | None:
     if raw is None:
         return None
     if not isinstance(raw, dict):
@@ -339,7 +348,14 @@ def _build_correctness(raw: Any, path: str, errors: list[str]) -> CorrectnessInf
         comparator=_pop_field(data, "comparator", str, path, errors),
         rtol_by_dtype={str(k): float(v) for k, v in rtol.items()},
         atol_by_dtype={str(k): float(v) for k, v in atol.items()},
-        equal_nan=bool(_pop_field(data, "equal_nan", bool, path, errors, default=True)),
+        equal_nan=_pop_field(
+            data,
+            "equal_nan",
+            bool,
+            path,
+            errors,
+            default=default_equal_nan,
+        ),
     )
     _reject_unknown(data, path, errors)
     return info
@@ -371,7 +387,12 @@ def _build_workload(raw: Any, path: str, errors: list[str]) -> WorkloadSpec | No
     name = _pop_field(data, "name", str, path, errors, required=True)
     raw_variants = data.pop("variants", None)
     input_fingerprint = _pop_field(data, "input_fingerprint", str, path, errors)
-    correctness = _build_correctness(data.pop("correctness", None), f"{path}.correctness", errors)
+    correctness = _build_correctness(
+        data.pop("correctness", None),
+        f"{path}.correctness",
+        errors,
+        default_equal_nan=None,
+    )
     variants: list[VariantSpec] = []
     if raw_variants is None:
         errors.append(f"{path}.variants: required field is missing")

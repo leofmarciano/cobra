@@ -41,8 +41,9 @@ libraries:
 
 Each recorded `Event` (`tracer.events.Event`) captures: op name, an
 args/kwargs summary, value-identity handles for inputs/outputs
-(`tracer.handles`, keyed by tensor storage pointer / dataframe object id /
-ndarray base id — so views of the same storage share a handle), per-value
+(`tracer.handles`, keyed by a generation-aware live tensor storage identity /
+dataframe object id / ndarray base id — so views share a handle while recycled
+tensor allocations do not alias), per-value
 metadata (dtype, shape/schema, device, storage id —
 `tracer.metadata.describe`), wall-clock timing (`time.perf_counter_ns`),
 thread id, and a best-effort call-site source location.

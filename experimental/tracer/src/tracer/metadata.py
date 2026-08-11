@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from tracer.handles import tensor_storage_identity
+
 try:
     import torch
 except ImportError:  # pragma: no cover
@@ -32,10 +34,7 @@ def describe(value: Any) -> dict[str, Any]:
     large buffers.
     """
     if torch is not None and isinstance(value, torch.Tensor):
-        try:
-            storage_id = value.untyped_storage().data_ptr()
-        except (RuntimeError, NotImplementedError):
-            storage_id = None
+        storage_id = tensor_storage_identity(value)
         return {
             "kind": "tensor",
             "dtype": str(value.dtype),

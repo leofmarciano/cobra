@@ -269,6 +269,7 @@ def _find_parallel_regions(
 
     regions: list[dict[str, Any]] = []
     seen: set[tuple[int, int, frozenset[int]]] = set()
+    reachable_cache: dict[int, set[int]] = {}
     for fork_id, children in data_succs.items():
         if len(children) < 2:
             continue
@@ -277,19 +278,23 @@ def _find_parallel_regions(
         # parallel branch pair.  This avoids discarding a valid fork just
         # because one of its children is a short side chain.
         for i, c1 in enumerate(children):
-            reach1 = _reachable(c1, succs)
+            reach1 = _reachable_cached(c1, succs, reachable_cache)
             for c2 in children[i + 1 :]:
-                if c1 == c2 or c2 in reach1 or c1 in _reachable(c2, succs):
+                if c1 == c2 or c2 in reach1 or c1 in _reachable_cached(c2, succs, reachable_cache):
                     continue
-                joins = _minimal_common_descendants([c1, c2], succs)
+                joins = _minimal_common_descendants([c1, c2], succs, reachable_cache)
                 for join_id in joins:
                     key = (fork_id, join_id, frozenset([c1, c2]))
                     if key in seen:
                         continue
                     seen.add(key)
-                    between = _nodes_between(fork_id, join_id, succs, preds)
-                    branch1 = set(_nodes_between(c1, join_id, succs, preds)) - {join_id}
-                    branch2 = set(_nodes_between(c2, join_id, succs, preds)) - {join_id}
+                    between = _nodes_between(fork_id, join_id, succs, preds, reachable_cache)
+                    branch1 = set(_nodes_between(c1, join_id, succs, preds, reachable_cache)) - {
+                        join_id
+                    }
+                    branch2 = set(_nodes_between(c2, join_id, succs, preds, reachable_cache)) - {
+                        join_id
+                    }
                     shared = branch1 & branch2
                     branch1 -= shared
                     branch2 -= shared
@@ -327,18 +332,30 @@ def _reachable(start: int, succs: dict[int, set[int]]) -> set[int]:
     return seen
 
 
-def _minimal_common_descendants(sources: list[int], succs: dict[int, set[int]]) -> list[int]:
+def _reachable_cached(
+    start: int,
+    succs: dict[int, set[int]],
+    cache: dict[int, set[int]],
+) -> set[int]:
+    """Return reachability for ``start``, computing it at most once."""
+    if start not in cache:
+        cache[start] = _reachable(start, succs)
+    return cache[start]
+
+
+def _minimal_common_descendants(
+    sources: list[int],
+    succs: dict[int, set[int]],
+    reachable_cache: dict[int, set[int]] | None = None,
+) -> list[int]:
     """Return earliest common descendants in the graph."""
-    reachable_sets = [_reachable(s, succs) for s in sources]
+    cache = {} if reachable_cache is None else reachable_cache
+    reachable_sets = [_reachable_cached(s, succs, cache) for s in sources]
     common = set.intersection(*reachable_sets) if reachable_sets else set()
-    minimal: list[int] = []
-    for c in common:
-        has_earlier_common_ancestor = any(
-            other != c and c in _reachable(other, succs) for other in common
-        )
-        if not has_earlier_common_ancestor:
-            minimal.append(c)
-    return sorted(minimal)
+    nonminimal: set[int] = set()
+    for other in common:
+        nonminimal.update((_reachable_cached(other, succs, cache) - {other}) & common)
+    return sorted(common - nonminimal)
 
 
 def _nodes_between(
@@ -346,11 +363,13 @@ def _nodes_between(
     end: int,
     succs: dict[int, set[int]],
     preds: dict[int, set[int]],
+    reachable_cache: dict[int, set[int]] | None = None,
 ) -> list[int]:
     """All nodes that lie on a path from ``start`` to ``end`` (inclusive)."""
     if start == end:
         return [start]
-    forward = _reachable(start, succs)
+    cache = {} if reachable_cache is None else reachable_cache
+    forward = _reachable_cached(start, succs, cache)
     if end not in forward:
         return []
     backward: set[int] = {end}
