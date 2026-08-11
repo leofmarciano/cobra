@@ -21,6 +21,12 @@ classifiers = [
     "Topic :: Software Development :: Compilers",
 ]
 
+[project.urls]
+Homepage = "https://github.com/leofmarciano/cobra"
+Repository = "https://github.com/leofmarciano/cobra"
+Issues = "https://github.com/leofmarciano/cobra/issues"
+Documentation = "https://github.com/leofmarciano/cobra/blob/main/docs/README.md"
+
 [project.optional-dependencies]
 native = []
 
@@ -32,6 +38,10 @@ dev = [
     "ruff>=0.11,<0.12",
     "mypy>=1.15,<1.16",
     "pytest>=8.3,<9",
+    "yamllint>=1.35,<1.36",
+    "pre-commit>=4.0,<5",
+    "deptry>=0.25,<0.26",
+    "vulture>=2.14,<2.15",
 ]
 
 [tool.setuptools.packages.find]
@@ -46,7 +56,28 @@ line-length = 100
 src = ["python"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "UP"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PTH", # flake8-use-pathlib
+    "RET", # flake8-return
+    "RUF", # Ruff-specific rules
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
 
 [tool.mypy]
 python_version = "3.13"

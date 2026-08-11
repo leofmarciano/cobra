@@ -1,0 +1,33 @@
+{
+  "name": "cobra-compiler",
+  "version": "0.0.1-dev.0",
+  "private": true,
+  "description": "AI-native whole-program Python compiler and heterogeneous parallel runtime",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "homepage": "https://github.com/leofmarciano/cobra",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leofmarciano/cobra.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leofmarciano/cobra/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "lint:biome": "biome check . --error-on-warnings",
+    "lint:biome:fix": "biome check . --apply --error-on-warnings",
+    "format:biome": "biome format . --write",
+    "format:biome:check": "biome format .",
+    "lint:knip": "knip",
+    "lint:md": "markdownlint-cli2 '**/*.md' '#node_modules'",
+    "lint:md:fix": "markdownlint-cli2 --fix '**/*.md' '#node_modules'"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "knip": "^5.50.0",
+    "markdownlint-cli2": "^0.23.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

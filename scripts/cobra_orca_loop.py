@@ -29,6 +29,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -284,7 +285,7 @@ def run_worker(
     started = time.monotonic()
     timeout_s = int(args.wait_minutes * 60)
     timed_out = False
-    with open(log_path, "w", encoding="utf-8") as log:
+    with log_path.open("w", encoding="utf-8") as log:
         log.write(f"# role={role} started={_now_iso()} timeout_s={timeout_s}\n")
         log.flush()
         proc = subprocess.Popen(
@@ -352,7 +353,9 @@ def git_head() -> str:
 def load_status(path: Path = STATUS_FILE) -> dict[str, Any]:
     if path.exists():
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
         except json.JSONDecodeError:
             pass
     return {"version": 2, "history": []}
@@ -372,10 +375,8 @@ def write_pid(pid_file: Path = PID_FILE) -> None:
 
 
 def remove_pid(pid_file: Path = PID_FILE) -> None:
-    try:
+    with contextlib.suppress(FileNotFoundError):
         pid_file.unlink()
-    except FileNotFoundError:
-        pass
 
 
 # ----------------------------------------------------------------------------
@@ -429,8 +430,8 @@ def advance_to_next_sprint(state: LoopState) -> LoopState:
     ids = roadmap_sprint_ids()
     try:
         current_idx = ids.index(state.sprint_id())
-    except ValueError:
-        raise LoopError(f"Active sprint {state.active_sprint} not found in ROADMAP ledger")
+    except ValueError as exc:
+        raise LoopError(f"Active sprint {state.active_sprint} not found in ROADMAP ledger") from exc
     if current_idx + 1 >= len(ids):
         raise LoopError("All sprints complete — loop finished")
 

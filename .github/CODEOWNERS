@@ -1,0 +1,11 @@
+# Global fallback until the project grows governance teams.
+# See GOVERNANCE.md for how reviewer pools are expanded.
+* @leofmarciano
+
+# The orchestration layer and sprint loop are owner-critical.
+/orchestration/ @leofmarciano
+/scripts/cobra_orca_loop.py @leofmarciano
+
+# CI/CD and repository hygiene.
+/.github/ @leofmarciano
+/scripts/ci/ @leofmarciano

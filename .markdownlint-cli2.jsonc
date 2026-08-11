@@ -1,0 +1,41 @@
+{
+  // https://github.com/DavidAnson/markdownlint-cli2
+  // Bootstrap config: permissive while the repo is mostly skeleton files.
+  // Tighten in S24/S28 as docs mature.
+  "config": {
+    "default": true,
+    "MD007": false,
+    "MD012": false,
+    "MD013": {
+      "line_length": 120,
+      "heading_line_length": 120,
+      "code_block_line_length": 120,
+      "tables": false
+    },
+    "MD022": false,
+    "MD024": {
+      "siblings_only": true
+    },
+    "MD025": false,
+    "MD026": false,
+    "MD029": false,
+    "MD032": false,
+    "MD034": false,
+    "MD033": {
+      "allowed_elements": ["details", "summary", "ref_file", "ref_snippet"]
+    },
+    "MD040": false,
+    "MD041": false,
+    "MD051": false,
+    "MD052": false,
+    "MD060": false
+  },
+  "ignores": [
+    "node_modules/**",
+    ".venv/**",
+    "COBRA_TECHNICAL_PLAN.md",
+    "orchestration/sprints/*.md",
+    "**/README.md"
+  ],
+  "customRules": []
+}
