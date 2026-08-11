@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cobra-bench"
+name = "cobra-pipelines"
 version = "0.0.1.dev0"
-description = "Benchmark harness for Project Cobra: manifests, machine metadata, timing protocol, and statistics (plan §33)."
+description = "Cobra phase-0 baseline pipeline workloads (plan §20.3-D)."
 readme = "README.md"
 license = { text = "Apache-2.0 WITH LLVM-exception" }
 requires-python = "==3.13.*"
@@ -19,18 +19,20 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "pyarrow>=19.0,<24",
-    "pyyaml>=6.0.3,<7",
+    "numpy==2.4.6",
+    "pandas==2.3.3",
+    "pyarrow==23.0.1",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
+    "nvidia-cuda-nvcc==13.0.88",
+    "cudf-cu13==26.6.0",
 ]
-
-[project.scripts]
-cobra-bench = "cobra_bench.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-cobra_bench = ["py.typed"]
+cobra_pipelines = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.13"
@@ -39,5 +41,5 @@ warn_unreachable = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["pyarrow", "pyarrow.*"]
+module = ["numpy", "numpy.*", "pandas", "pandas.*", "pyarrow", "pyarrow.*", "torch", "torch.*", "torchvision", "torchvision.*", "cudf", "cudf.*"]
 ignore_missing_imports = true

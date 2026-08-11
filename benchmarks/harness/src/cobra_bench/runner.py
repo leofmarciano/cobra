@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import math
 import random
 import subprocess
 import sys
@@ -63,20 +64,112 @@ def _exact_oracle(expected: Any) -> Callable[[Any], bool]:
     return check
 
 
+_DEFAULT_RTOL: dict[str, float] = {
+    "float64": 1e-5,
+    "float32": 1e-4,
+    "float16": 1e-2,
+    "bfloat16": 1e-2,
+}
+
+_DEFAULT_ATOL: dict[str, float] = {
+    "float64": 1e-8,
+    "float32": 1e-6,
+    "float16": 1e-3,
+    "bfloat16": 1e-3,
+}
+
+
+def _float_key(expected: Any, actual: Any, by_dtype: dict[str, float]) -> str:
+    """Pick a tolerance-key from the concrete scalar type name, defaulting to float64.
+
+    Resolution order for Python ``float`` values:
+    1. If "float" is a key in by_dtype, use it (allows suite-level override).
+    2. Otherwise fall back to "float64".
+    """
+    for value in (expected, actual):
+        name = type(value).__name__
+        if name in by_dtype:
+            return name
+        if name == "float":
+            if "float" in by_dtype:
+                return "float"
+            return "float64"
+    return "float64"
+
+
+def _approx_equal(
+    expected: Any,
+    actual: Any,
+    rtol_by_dtype: dict[str, float],
+    atol_by_dtype: dict[str, float],
+) -> bool:
+    """Recursive approximate equality: exact for ints/strings, tolerant for floats."""
+    if expected is None or actual is None:
+        return expected is actual
+
+    if isinstance(expected, bool) or isinstance(actual, bool):
+        return bool(expected == actual)
+    if isinstance(expected, str) or isinstance(actual, str):
+        return bool(expected == actual)
+
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict) or expected.keys() != actual.keys():
+            return False
+        return all(
+            _approx_equal(expected[k], actual[k], rtol_by_dtype, atol_by_dtype) for k in expected
+        )
+
+    if isinstance(expected, list | tuple):
+        if not isinstance(actual, list | tuple) or len(expected) != len(actual):
+            return False
+        return all(
+            _approx_equal(e, a, rtol_by_dtype, atol_by_dtype)
+            for e, a in zip(expected, actual, strict=False)
+        )
+
+    if isinstance(expected, int | float) and isinstance(actual, int | float):
+        # Use tolerance for real numbers; bools and strings are handled above.
+        key = _float_key(expected, actual, rtol_by_dtype)
+        rtol = rtol_by_dtype.get(key, _DEFAULT_RTOL["float64"])
+        atol = atol_by_dtype.get(key, _DEFAULT_ATOL["float64"])
+        return math.isclose(float(expected), float(actual), rel_tol=rtol, abs_tol=atol)
+
+    return bool(expected == actual)
+
+
+def _approx_oracle(
+    expected: Any,
+    rtol_by_dtype: dict[str, float] | None = None,
+    atol_by_dtype: dict[str, float] | None = None,
+) -> Callable[[Any], bool]:
+    rtol = {**_DEFAULT_RTOL, **(rtol_by_dtype or {})}
+    atol = {**_DEFAULT_ATOL, **(atol_by_dtype or {})}
+
+    def check(result: Any) -> bool:
+        return _approx_equal(expected, result, rtol, atol)
+
+    return check
+
+
 def build_oracle(
     workload: WorkloadSpec,
     baseline_variant: VariantSpec,
     *,
     comparator: str | None = "exact",
+    rtol_by_dtype: dict[str, float] | None = None,
+    atol_by_dtype: dict[str, float] | None = None,
 ) -> Callable[[Any], bool]:
     """Build a correctness oracle that compares a result to the baseline.
 
-    ``comparator`` currently supports ``"exact"``.  Future comparators (tensor,
-    approximate) will be added when real workloads arrive (S02).
+    ``comparator`` supports ``"exact"`` and ``"approx"``.  ``approx`` uses
+    ``rtol_by_dtype`` / ``atol_by_dtype`` for float values and exact equality
+    for integers, strings, and booleans (plan §33.4).
     """
     expected = _load_expected(baseline_variant)
     if comparator == "exact":
         return _exact_oracle(expected)
+    if comparator == "approx":
+        return _approx_oracle(expected, rtol_by_dtype=rtol_by_dtype, atol_by_dtype=atol_by_dtype)
     msg = f"unsupported correctness comparator: {comparator!r}"
     raise ValueError(msg)
 
@@ -104,6 +197,8 @@ def verify_workload(
     variants: list[str] | None = None,
     *,
     comparator: str | None = "exact",
+    rtol_by_dtype: dict[str, float] | None = None,
+    atol_by_dtype: dict[str, float] | None = None,
 ) -> CorrectnessReport:
     """Run each requested variant once and compare outputs."""
     report = CorrectnessReport(workload=workload.name)
@@ -115,7 +210,13 @@ def verify_workload(
 
     baseline_name, baseline_variant = selected[0]
     expected = _load_expected(baseline_variant)
-    oracle = _exact_oracle(expected)
+    oracle = build_oracle(
+        workload,
+        baseline_variant,
+        comparator=comparator,
+        rtol_by_dtype=rtol_by_dtype,
+        atol_by_dtype=atol_by_dtype,
+    )
 
     report.results[baseline_name] = expected
     for name, variant in selected:
@@ -196,6 +297,8 @@ def run_workload(
                 workload,
                 baseline_variant,
                 comparator=manifest.correctness.comparator if manifest.correctness else "exact",
+                rtol_by_dtype=manifest.correctness.rtol_by_dtype if manifest.correctness else None,
+                atol_by_dtype=manifest.correctness.atol_by_dtype if manifest.correctness else None,
             )
         else:
             warnings.warn(

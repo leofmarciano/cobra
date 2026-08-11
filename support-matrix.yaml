@@ -1,8 +1,17 @@
 release: "0.0.1.dev0"
 comment: |
-  Initial development compatibility matrix (v0). Native build targets and
-  framework pins will be added once the Linux GPU development host is
-  provisioned and the first CUDA smoke test is run.
+  Development compatibility matrix (v1, S02-T0). Framework pins below are
+  the versions selected for the primary GPU host (see
+  artifacts/environment/primary-host.json) and verified to co-resolve via
+  `uv pip install --dry-run` on 2026-08-11. Pin rationale: cudf-cu13
+  26.6.0 constrains numpy to <2.5 and pandas to <2.4, so pandas/numpy are
+  pinned to the newest releases satisfying that ceiling rather than the
+  latest upstream release (pandas 3.0.x, numpy 2.5.x are NOT compatible
+  with this cudf release). pyarrow is pinned below cudf's <24 ceiling.
+  All versions were published >=7 days before this pin per PROTOCOL §7.
+  cuda_toolkit is provided by the pip-installed `nvidia-cuda-nvcc-cu13`
+  wheel (transitive dep of cudf-cu13/torch cu13 builds) — no system-wide
+  CUDA toolkit install is required for pip-wheel-based workloads.
 platforms:
   - os: macos
     arch: arm64
@@ -11,8 +20,13 @@ platforms:
   - os: ubuntu-24.04
     arch: x86_64
     python: "3.13"
-    pytorch: "TBD"
-    cuda_toolkit: "TBD"
-    driver_minimum: "TBD"
+    note: "WSL2 Ubuntu 24.04.1 on Windows host; primary GPU dev/bench host recorded in STATE.md."
+    pytorch: "2.13.0"
+    numpy: "2.4.6"
+    pandas: "2.3.3"
+    pyarrow: "23.0.1"
+    cudf: "cudf-cu13==26.6.0"
+    cuda_toolkit: "13.x (pip wheels: nvidia-cuda-nvcc-cu13, nvidia-cuda-runtime-cu13, etc.)"
+    driver_minimum: "560.x (CUDA 13 support); observed driver 591.86"
     gpu_families:
-      - TBD
+      - "NVIDIA Ampere (sm_86) — RTX 30-series, verified on RTX 3080"

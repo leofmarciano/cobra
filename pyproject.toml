@@ -44,6 +44,7 @@ dev = [
     "vulture>=2.14,<2.15",
     "types-pyyaml>=6.0,<7",
     "cobra-bench",
+    "cobra-pipelines",
 ]
 
 [tool.setuptools.packages.find]
@@ -53,10 +54,11 @@ where = ["python"]
 default-groups = ["dev"]
 
 [tool.uv.workspace]
-members = ["benchmarks/harness"]
+members = ["benchmarks/harness", "benchmarks/pipelines"]
 
 [tool.uv.sources]
 cobra-bench = { workspace = true }
+cobra-pipelines = { workspace = true }
 
 [tool.ruff]
 target-version = "py313"

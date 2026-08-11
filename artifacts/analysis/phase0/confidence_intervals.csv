@@ -1,0 +1,7 @@
+workload,variant,metric,n_samples,n_missing,median,ci_low,ci_high,speedup,speedup_ci_low,speedup_ci_high,significant
+cv_preprocess_inference_postprocess,b0,wall_time_ns,30,0,237769787.0,236901707.0,240895014.5,1.0,1.0,1.0,False
+cv_preprocess_inference_postprocess,b1,wall_time_ns,30,0,228426903.0,225814768.5,236952566.0,1.040900979163562,1.0036048649500593,1.0622351847777605,True
+model_ensemble,b0,wall_time_ns,30,0,72858477.5,72130882.0,73404857.0,1.0,1.0,1.0,False
+model_ensemble,b1,wall_time_ns,30,0,77155664.5,76128960.0,77984991.0,0.9443049706350465,0.9284707892959723,0.9605001212886681,True
+parquet_feature_inference,b0,wall_time_ns,30,0,380098256.5,377038467.5,388479980.5,1.0,1.0,1.0,False
+parquet_feature_inference,b1,wall_time_ns,30,0,423922339.5,417113241.0,436652770.0,0.8966223788732417,0.8683145354646652,0.9235188465882486,True
