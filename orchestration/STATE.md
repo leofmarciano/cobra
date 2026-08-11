@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S00 recovery: reset dirty tree (2nd occurrence) to last verified commit; T1 (LICENSE) still not started
+**Last updated:** 2026-08-11 — S00 T1 LICENSE repaired; sprint complete, awaiting validation
 
 ## Now
 
@@ -11,10 +11,10 @@
 |---|---|
 | Milestone | M0 — Thesis validation |
 | Active sprint | S00 — Project bootstrap (`orchestration/sprints/S00-project-bootstrap.md`) |
-| Sprint status | `in_progress` |
-| Current task | T1 — repair `LICENSE` to match canonical https://llvm.org/LICENSE.txt |
+| Sprint status | `needs_validation` |
+| Current task | T1 — repaired; all tasks complete |
 | Branch | `sprint/S00-project-bootstrap` |
-| Next action | Run `orchestration/prompts/P0-execute.md` in a fresh session |
+| Next action | Run `orchestration/prompts/P1-validate.md` in a fresh session |
 
 ## Blockers
 
@@ -47,25 +47,14 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-11 | S00 executor (P0) | Repaired `LICENSE` to match https://llvm.org/LICENSE.txt verbatim (only project-name header changed to "The Cobra Project"). `diff -u` against the canonical file shows exactly one line. All S00 validation commands pass (`uv sync`, `./scripts/check.sh`, 80 READMEs, import smoke). Sprint status set to `needs_validation`; next is P1. |
 | 2026-08-11 | S00 recovery #2 (P2) | Found dirty tree again on `sprint/S00-project-bootstrap` at 6d53308 — same anti-pattern as the prior same-day recovery (out-of-scope CI/npm tooling WIP), T1 (LICENSE) still untouched. Verified 6d53308 passes all S00 validation commands. Rescued WIP to `rescue/S00-2026-08-11-0037`, reset sprint branch to 6d53308. Unchecked T1 box (defect confirmed, not just unverified). Sprint remains `in_progress`/T1; next is P0 — actually fix LICENSE. |
 | 2026-08-11 | S00 validation (P1) | All automated validation commands pass. Acceptance audit found T1 defect: `LICENSE` is not verbatim canonical (diff vs https://llvm.org/LICENSE.txt). Sprint reopened to fix T1; next is P0. |
-| 2026-08-11 | S00 recovery #1 (P2) | Found dirty working tree after a44e1e0 with uncommitted out-of-scope CI/tooling WIP. S00 validation still passes on a44e1e0 (`uv sync`, `./scripts/check.sh`, 80 READMEs, import smoke). Rescued WIP to `rescue/S00-2026-08-11`, reset `sprint/S00-project-bootstrap` to a44e1e0. Sprint remains `needs_validation`; next is P1. |
 
 ## Notes for the next session
 
-- **Two P0 sessions in a row have skipped T1 and instead produced unrelated,
-  uncommitted CI/npm tooling (workflows, biome/knip, pre-commit, package.json)
-  — both were rescued (`rescue/S00-2026-08-11`, `rescue/S00-2026-08-11-0037`)
-  and reset without progress. The active task is EXACTLY T1: replace
-  `LICENSE` with the verbatim text from https://llvm.org/LICENSE.txt (or the
-  approved project-specific equivalent — only a project-name header
-  substitution is allowed). Do nothing else until `diff` against the
-  canonical text is clean, `./scripts/check.sh` passes, and the sprint file
-  Session log + STATE.md are updated and committed.**
-- S00 was reopened by Validator: T1 LICENSE is not verbatim canonical. Fix by
-  replacing `LICENSE` with the full text from https://llvm.org/LICENSE.txt (or
-  the approved project-specific equivalent), then re-run `./scripts/check.sh`
-  and re-validate with P1.
+- S00 is complete and awaiting validation: run `orchestration/prompts/P1-validate.md`
+  in a fresh session.
 - S00 is CPU-only and runs fine from any machine.
 - The plan's §36 approval record is pending; the S05 gate collects the
   formal sign-offs. Proceeding through M0 is explicitly authorized by the
@@ -74,8 +63,3 @@ Items an executor needs from the owner; answer by editing this list.
   (`scripts/cobra_orca_loop.py`, wrapper, precheck).
 - Security contact email remains a flagged placeholder in `SECURITY.md`.
 - Linux + NVIDIA GPU host details still need to be recorded before S02.
-- Uncommitted CI/npm tooling WIP from an unfinished session was rescued to
-  `rescue/S00-2026-08-11`; the sprint branch is now clean at a44e1e0 and still
-  `needs_validation`.
-- Orca automation registered: `Cobra Autonomous Sprint Loop`
-  (id `9bc2f963-7a94-46a7-b870-f23f3523cd43`), hourly trigger, enabled.
