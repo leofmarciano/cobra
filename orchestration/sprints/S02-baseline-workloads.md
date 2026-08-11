@@ -109,3 +109,10 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 ## Session log (append-only)
 
 <!-- [YYYY-MM-DD][session] done / next / surprises -->
+
+**2026-08-11 — S02 executor (P0), boot + T0 attempt**
+- Booted from `main`; created branch `sprint/S02-baseline-workloads`.
+- Read context budget: `COBRA_TECHNICAL_PLAN.md` §20.2, §20.3-D, §29 Days 1-10, §2.4, §33.2-33.4.
+- T0 requires running `cobra-bench doctor --strict` on the Linux + NVIDIA GPU host and recording `artifacts/environment/primary-host.json`. This macOS orchestration host has no GPU; `cobra-bench doctor` strict mode fails when `nvidia-smi` is absent (§33.2).
+- **Blocker:** need owner-provided Linux + NVIDIA GPU host access (hostname/SSH, GPU model, driver version, CUDA toolkit). Recorded in `orchestration/STATE.md` Blockers and Human-input queue.
+- No code changes; next action is to rerun P0 once host details are supplied.
