@@ -32,7 +32,7 @@ drafted semantic charter. No compiler code.
 ## Tasks
 
 ### T1 — Governance documents
-- [ ] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
+- [x] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
   fetch canonical text from llvm.org/LICENSE.txt), `NOTICE`,
   `CONTRIBUTING.md` (DCO 1.1 quoted in full + sign-off requirement +
   pointer to orchestration loop), `CODE_OF_CONDUCT.md` (Contributor
@@ -171,3 +171,10 @@ all S00 validation commands from a clean tree (`uv sync`, `./scripts/check.sh`,
 the rescue branch, so no work was discarded). Sprint status remains
 `in_progress`, current task remains T1. Next: run P0-execute.md and actually
 perform the LICENSE fix before touching anything else. -->
+<!-- [2026-08-11][Executor] Repaired LICENSE to match the canonical text at
+https://llvm.org/LICENSE.txt with only the project-name header substituted
+(The Cobra Project). Verified `diff -u /tmp/llvm-canonical.txt LICENSE` shows
+exactly one line changed. All S00 validation commands pass (`uv sync`,
+`./scripts/check.sh`, 80 READMEs tracked, import smoke prints `0.0.1.dev0`).
+T1 checkbox checked. Sprint status set to `needs_validation`. Next: run
+`orchestration/prompts/P1-validate.md` in a fresh session. -->
