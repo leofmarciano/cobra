@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #2 |
 | Milestone | M0 — Thesis validation |
 | Depends on | S00 (done) |
 | Hardware | CPU-only (GPU metadata paths guarded, tested with fakes) |

@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #23 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S21 = go |
 | Hardware | **NVIDIA GPU required** (adapter alias tests) |

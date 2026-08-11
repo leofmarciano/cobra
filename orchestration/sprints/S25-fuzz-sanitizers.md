@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #26 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S24 (done) |
 | Hardware | **NVIDIA GPU required** (compute-sanitizer lanes) |

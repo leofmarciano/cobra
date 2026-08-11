@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #22 |
 | Milestone | M3 — Integration & evidence (closes it) |
 | Depends on | S20 (done) |
 | Hardware | none (review; cheap re-checks allowed) |

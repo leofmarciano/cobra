@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #21 |
 | Milestone | M3 — Integration & evidence |
 | Depends on | S19 (done) |
 | Hardware | **NVIDIA GPU required** (frozen bench host only) |

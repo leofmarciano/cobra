@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #1 |
 | Milestone | M0 — Thesis validation |
 | Depends on | — |
 | Hardware | CPU-only |
@@ -116,3 +117,6 @@ packaging + lint infra from this sprint.
 loop harness scripts/cobra_orca_loop.py, wrapper, precheck, and README docs. No
 sprint tasks completed; S00 still not_started. Next: run P0 or enable the
 automation to begin S00. -->
+<!-- [2026-08-10][Devin] Human request: created 30 GitHub issues (#1-#30) for
+S00-S29, added labels `sprint`/`milestone-M*`/`gate`, and linked them from every
+sprint file and from the ROADMAP ledger. -->

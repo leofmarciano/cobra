@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-10 — autonomous loop harness setup (Devin)
+**Last updated:** 2026-08-10 — GitHub issues created for all sprints (Devin)
 
 ## Now
 
@@ -43,6 +43,7 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-10 | Sprint issues + labels (Devin) | Created 30 GitHub issues (#1-#30) for S00-S29, labels `sprint`/`milestone-M*`/`gate`, linked from sprint files and ROADMAP.md. |
 | 2026-08-10 | Autonomous loop harness (Devin) | Added scripts/cobra_orca_loop.py + wrapper/precheck; branch sprint/S00-project-bootstrap. Sprint S00 still not_started. |
 | 2026-08-10 | Orchestration setup (Devin) | Created loop docs, 30 sprint files, 5 prompts. No product code written. |
 
@@ -59,3 +60,5 @@ Items an executor needs from the owner; answer by editing this list.
   still `not_started`; run P0 manually or enable the automation to begin S00.
 - Orca automation registered: `Cobra Autonomous Sprint Loop`
   (id `9bc2f963-7a94-46a7-b870-f23f3523cd43`), hourly trigger, enabled.
+- GitHub issues created for S00-S29 (#1-#30). Sprint files and ROADMAP.md link
+  to them; labels: `sprint`, `milestone-M0..M4`, `gate` for gates.

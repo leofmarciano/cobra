@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #5 |
 | Milestone | M0 — Thesis validation |
 | Depends on | S03 (done) |
 | Hardware | **NVIDIA GPU required** |

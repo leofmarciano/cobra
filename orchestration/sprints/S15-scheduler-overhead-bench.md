@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #16 |
 | Milestone | M2 — Runtime & scheduler (closes it) |
 | Depends on | S14 (done) |
 | Hardware | **NVIDIA GPU required** |

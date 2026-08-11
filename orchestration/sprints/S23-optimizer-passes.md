@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #24 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S22 (done) |
 | Hardware | **NVIDIA GPU required** (mechanism verification) |

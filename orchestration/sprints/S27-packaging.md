@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #28 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S26 (done) |
 | Hardware | CPU-only (install tests also run on GPU host) |

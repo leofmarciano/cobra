@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #18 |
 | Milestone | M3 — Integration & evidence |
 | Depends on | S16 (done) |
 | Hardware | **NVIDIA GPU required** (cuDF path) |

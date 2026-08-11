@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #27 |
 | Milestone | M4 — v0.1 hardening & release |
 | Depends on | S23 (done; runs after S25 in ledger order) |
 | Hardware | CPU-only (GPU spot-checks for doctor) |

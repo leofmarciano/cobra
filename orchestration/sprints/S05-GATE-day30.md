@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #6 |
 | Milestone | M0 — Thesis validation (closes it) |
 | Depends on | S04 (done) |
 | Hardware | none (review only; cheap re-checks allowed) |

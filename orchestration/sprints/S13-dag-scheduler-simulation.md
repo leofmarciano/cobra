@@ -2,6 +2,7 @@
 
 | Field | Value |
 |---|---|
+| GitHub issue | #14 |
 | Milestone | M2 — Runtime & scheduler |
 | Depends on | S08 (done); S12 merged (WIP order) |
 | Hardware | CPU-only |
