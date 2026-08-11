@@ -102,9 +102,9 @@ uv run python -c "import cobra_compiler as cobra; print(cobra.__version__)"
 
 ## Definition of Done
 
-- [ ] All tasks accepted; validation passes from a clean checkout
-- [ ] No TODO/placeholder except flagged Human-input items
-- [ ] STATE.md + Session log updated; committed on `sprint/S00-project-bootstrap`
+- [x] All tasks accepted; validation passes from a clean checkout
+- [x] No TODO/placeholder except flagged Human-input items
+- [x] STATE.md + Session log updated; committed on `sprint/S00-project-bootstrap`
 
 ## Handoff to next sprint
 
@@ -178,3 +178,11 @@ exactly one line changed. All S00 validation commands pass (`uv sync`,
 `./scripts/check.sh`, 80 READMEs tracked, import smoke prints `0.0.1.dev0`).
 T1 checkbox checked. Sprint status set to `needs_validation`. Next: run
 `orchestration/prompts/P1-validate.md` in a fresh session. -->
+<!-- [2026-08-11][Validator] Validation passed. Reproduced all four validation
+commands from a clean checkout: `uv sync` green, `./scripts/check.sh` green,
+80 README.md files tracked, import smoke prints `0.0.1.dev0`. LICENSE verified
+verbatim against https://llvm.org/LICENSE.txt (one-line project-name
+substitution). Acceptance audit: T1-T6 and DoD satisfied. Anti-gaming check:
+no weakened/skipped tests, no hardcoded outputs, no `# type: ignore`, no
+undocumented TODOs. Merged `sprint/S00-project-bootstrap` into `main` with
+commit d5c14976c19e7548b3d30ffff26acd63f4669e27; GitHub issue #1 closed. Sprint done; S01 started. -->
