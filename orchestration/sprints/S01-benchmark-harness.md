@@ -52,7 +52,7 @@ bootstrap statistics, and correctness-gated measurement.
   mode exits nonzero there.
 
 ### T3 — Timing protocol engine
-- [ ] Do: implement §20.5 + §33.5/33.6: warmup-until-stable policy (min
+- [x] Do: implement §20.5 + §33.5/33.6: warmup-until-stable policy (min
   count, median band, max cap reported as failure), ≥30 samples default,
   randomized variant order, cold mode = process-per-sample (subprocess),
   per-sample correctness hook — a failed oracle invalidates that

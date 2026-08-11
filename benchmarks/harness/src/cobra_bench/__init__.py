@@ -25,19 +25,33 @@ from cobra_bench.manifest import (
     WorkloadSpec,
     load_manifest,
 )
+from cobra_bench.timing import (
+    ColdRunner,
+    CorrectnessFailed,
+    SampleResult,
+    TimingConfig,
+    TimingEngine,
+    WarmupFailure,
+)
 
 __version__ = "0.0.1.dev0"
 
 __all__ = [
     "BenchmarkManifest",
+    "ColdRunner",
+    "CorrectnessFailed",
     "CorrectnessInfo",
     "CudaInfo",
     "EnvironmentReport",
     "HostInfo",
     "ManifestError",
     "ProtocolInfo",
+    "SampleResult",
     "SoftwareInfo",
+    "TimingConfig",
+    "TimingEngine",
     "VariantSpec",
+    "WarmupFailure",
     "WorkloadSpec",
     "__version__",
     "collect_gpu_info",
