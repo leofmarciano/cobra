@@ -4,4 +4,4 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-uv run pytest
+uv run pytest test/python benchmarks/harness -q

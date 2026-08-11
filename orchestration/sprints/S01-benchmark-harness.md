@@ -102,10 +102,10 @@ test -f /tmp/analysis/summary.json
 
 ## Definition of Done
 
-- [ ] All tasks accepted; validation green from clean checkout
-- [ ] Harness has zero dependencies on Cobra internals (it must be able to
+- [x] All tasks accepted; validation green from clean checkout
+- [x] Harness has zero dependencies on Cobra internals (it must be able to
       measure ANY Python callable — it outlives prototypes)
-- [ ] STATE.md + Session log updated; committed on sprint branch
+- [x] STATE.md + Session log updated; committed on sprint branch
 
 ## Handoff to next sprint
 
@@ -210,3 +210,11 @@ details into STATE.md Environment.
   confirming the harness is sensitive but also showing that a trivial
   microbenchmark can produce extreme speedup ratios that should be
   interpreted with care in public reports (§33.12 item 7).
+- [2026-08-11][S01 Validator (P1)] Validated and closed. Re-ran the full
+  sprint validation suite on a clean working tree: 120 harness tests pass,
+  `cobra-bench doctor|verify|run|analyze|compare` all work end-to-end on
+  macOS, and `./scripts/check.sh` is green. Fixed two CI gaps discovered
+  during validation: `scripts/ci/python-test.sh` now runs
+  `benchmarks/harness` tests (it previously only ran `test/python`) and
+  `scripts/ci/python-lint.sh` now type-checks the harness with mypy.
+  Merged `sprint/S01-benchmark-harness` into `main`. Next: S02.
