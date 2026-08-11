@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cobra-bench"
+version = "0.0.1.dev0"
+description = "Benchmark harness for Project Cobra: manifests, machine metadata, timing protocol, and statistics (plan §33)."
+readme = "README.md"
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+requires-python = "==3.13.*"
+authors = [
+    { name = "The Cobra Project Authors" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "pyarrow>=19.0,<20",
+    "pyyaml>=6.0.3,<7",
+]
+
+[project.scripts]
+cobra-bench = "cobra_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cobra_bench = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["pyarrow", "pyarrow.*"]
+ignore_missing_imports = true

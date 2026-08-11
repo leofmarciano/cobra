@@ -1,0 +1,37 @@
+# Example §33.1 benchmark manifest. Two dummy Python workloads/variants so
+# the full `cobra-bench run|analyze` pipeline can be exercised without any
+# Cobra internals (S01 T5 validation).
+run_id: cobra-bench-example
+suite: example-v0
+commit: "0000000000000000000000000000000000000000"
+workload_commit: "0000000000000000000000000000000000000000"
+container_digest: null
+
+host:
+  hostname_alias: example-host
+  os: linux
+  manual: true
+
+cuda: {}
+
+software:
+  python: "3.13"
+
+protocol:
+  warmup_policy: stability
+  minimum_samples: 30
+  configuration_order: randomized
+  correctness_required: true
+  confidence_interval: bootstrap-95
+
+correctness:
+  comparator: exact
+  equal_nan: true
+
+workloads:
+  - name: dummy_add
+    variants:
+      - name: a
+        entrypoint: "cobra_bench.examples.dummy:variant_a"
+      - name: b
+        entrypoint: "cobra_bench.examples.dummy:variant_b"

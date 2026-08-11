@@ -26,10 +26,25 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Benchmarking & measurement
 
-- (none yet)
+- [2026-08-11][S01] When hand-writing benchmark manifest/suite YAML,
+  quote any all-digit string field (commit SHAs, hashes) explicitly
+  (`commit: "0000...0"`), otherwise PyYAML's default loader parses it as
+  an `int` and schema validation rejects it as the wrong type.
+- [2026-08-11][S01] A hand-rolled dict-pop validator must still `pop()`
+  the key even when short-circuiting because the value is `None`/absent —
+  otherwise a later "reject unknown keys" pass reports a false-positive
+  "unknown field" for legitimately-null optional fields.
 
 ## Loop & process
 
+- [2026-08-11][S01 recovery] A session that completes a task and begins the next
+  one can leave the working tree staged but uncommitted, and `STATE.md` one task
+  behind. Recovery found T2 committed but no STATE handoff and T3 fully staged
+  but uncommitted. Combined with an unrelated, half-finished
+  `scripts/cobra_orca_loop.py` edit, this blocked `./scripts/check.sh`. Fix/rule:
+  a handoff must end with a clean `git status` (all changes committed), and
+  non-sprint/tooling changes must be on their own branch, never mixed with a
+  sprint task.
 - [2026-08-11][S00 validation] Legal or canonical text copied from a URL (e.g.,
   `LICENSE`) must be verified with `diff -u` against the fetched source, not just
   by inspection. A `LICENSE` passed all lint/tests but was missing ~50 lines of

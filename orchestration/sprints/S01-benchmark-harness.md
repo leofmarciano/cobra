@@ -33,7 +33,7 @@ bootstrap statistics, and correctness-gated measurement.
 ## Tasks
 
 ### T1 — Package + manifest schema
-- [ ] Do: `benchmarks/harness/` as installable module `cobra_bench`
+- [x] Do: `benchmarks/harness/` as installable module `cobra_bench`
   (wired into the uv workspace). Implement the §33.1 manifest as typed
   dataclasses + YAML loader with validation. Hand-entered fields must be
   explicitly marked `manual: true` and are rejected by default in strict
@@ -42,7 +42,7 @@ bootstrap statistics, and correctness-gated measurement.
   manifest in `benchmarks/suites/example.yaml` round-trips.
 
 ### T2 — Machine metadata collector (`cobra-bench doctor`)
-- [ ] Do: capture OS/kernel/CPU/NUMA/RAM; GPU via `nvidia-smi` (name,
+- [x] Do: capture OS/kernel/CPU/NUMA/RAM; GPU via `nvidia-smi` (name,
   driver, clocks policy, power limit, persistence, MIG) when present;
   Python/framework versions via importlib. Output
   `artifacts/environment.json`. `--strict` fails when required fields are
@@ -52,7 +52,7 @@ bootstrap statistics, and correctness-gated measurement.
   mode exits nonzero there.
 
 ### T3 — Timing protocol engine
-- [ ] Do: implement §20.5 + §33.5/33.6: warmup-until-stable policy (min
+- [x] Do: implement §20.5 + §33.5/33.6: warmup-until-stable policy (min
   count, median band, max cap reported as failure), ≥30 samples default,
   randomized variant order, cold mode = process-per-sample (subprocess),
   per-sample correctness hook — a failed oracle invalidates that
@@ -62,7 +62,7 @@ bootstrap statistics, and correctness-gated measurement.
   max-warmup failure, order randomization, correctness-gating.
 
 ### T4 — Result schema + statistics
-- [ ] Do: per-sample record per §33.10 (distinguish real-zero from
+- [x] Do: per-sample record per §33.10 (distinguish real-zero from
   unavailable via `null`), written as JSON-lines + Parquet (pyarrow).
   `cobra-bench analyze`: median, p95/p99, geometric-mean speedup,
   bootstrap 95% CI, coefficient of variation; outputs `summary.md`,
@@ -72,21 +72,21 @@ bootstrap statistics, and correctness-gated measurement.
   bounds match a reference implementation within tolerance.
 
 ### T5 — CLI assembly
-- [ ] Do: `cobra-bench` entry point with `doctor | verify | run |
+- [x] Do: `cobra-bench` entry point with `doctor | verify | run |
   analyze | compare` (§33 command shapes; `verify` runs oracles only,
   `compare` v0 = threshold check between two summary.json files).
   `--output` directory convention `artifacts/…` per runbook.
-- Accept: `cobra-bench run --suite benchmarks/suites/example.yaml
+- [x] Accept: `cobra-bench run --suite benchmarks/suites/example.yaml
   --variants a,b --phase warm` measures two dummy Python workloads
   end-to-end and `analyze` produces the artifact set.
 
 ### T6 — Anti-pattern guardrails
-- [ ] Do: encode §33.11 as automated checks where possible: refuse mixed
+- [x] Do: encode §33.11 as automated checks where possible: refuse mixed
   cold/warm comparison, refuse comparing variants with different input
   fingerprints, warn when sample count <30, refuse timing when the
   correctness hook is absent (must be explicit `--no-oracle` with a
   loud warning).
-- Accept: each guardrail has a unit test proving it triggers.
+- [x] Accept: each guardrail has a unit test proving it triggers.
 
 ## Validation
 
@@ -102,10 +102,10 @@ test -f /tmp/analysis/summary.json
 
 ## Definition of Done
 
-- [ ] All tasks accepted; validation green from clean checkout
-- [ ] Harness has zero dependencies on Cobra internals (it must be able to
+- [x] All tasks accepted; validation green from clean checkout
+- [x] Harness has zero dependencies on Cobra internals (it must be able to
       measure ANY Python callable — it outlives prototypes)
-- [ ] STATE.md + Session log updated; committed on sprint branch
+- [x] STATE.md + Session log updated; committed on sprint branch
 
 ## Handoff to next sprint
 
@@ -116,3 +116,105 @@ details into STATE.md Environment.
 ## Session log (append-only)
 
 <!-- [YYYY-MM-DD][session] done / next / surprises -->
+- [2026-08-11][S01 executor (P0), T1] Done: created `benchmarks/harness/`
+  as a `uv` workspace member package `cobra-bench` (src layout,
+  `pyproject.toml`, added to root `[tool.uv.workspace]` +
+  `[tool.uv.sources]`, and to the root dev dependency group so `uv sync`
+  installs it editable). Implemented `cobra_bench.manifest`: dataclasses
+  for the §33.1 manifest (host/cuda/software/protocol/correctness sections
+  + workload/variant lists), a hand-written field-level validator
+  (`manifest_from_dict`/`load_manifest`, raising `ManifestError` with all
+  problems collected, not just the first), `manifest_to_dict`/
+  `dump_manifest` for round-tripping, and strict-mode rejection of any
+  section marked `manual: true` per the §33.1 last paragraph. Added
+  `benchmarks/suites/example.yaml` (two dummy Python variants under
+  `cobra_bench.examples.dummy`, reusable by T5) and
+  `benchmarks/harness/tests/test_manifest.py` (11 cases: load, round-trip,
+  missing/wrong-type/unknown-field errors, multi-error aggregation,
+  manual/strict interaction, invalid entrypoint format, protocol
+  defaults) — written before the implementation (TDD). Added
+  `pyyaml` (harness runtime dep) and `types-pyyaml` (root dev dep, for
+  `mypy --strict` on `cobra_bench`, verified separately from `./scripts/check.sh`
+  since mypy in CI is currently scoped to `cobra_compiler` only). Recorded
+  in `orchestration/DECISIONS.md` (D-005).
+  Validation: `uv run pytest benchmarks/harness -q` (11 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `./scripts/check.sh` (all green).
+  Next: T2 — machine metadata collector (`cobra-bench doctor`).
+  Surprises: a naive dict-pop validator silently left `None`-valued keys
+  in the "remaining" dict, causing false "unknown field" errors on
+  legitimately-null optional fields (e.g. `container_digest: null`) —
+  fixed by always popping the key even when short-circuiting on `None`.
+  Also: PyYAML's default loader parses unquoted all-digit strings (e.g. a
+  40-char all-zero commit hash) as `int`; the example manifest now quotes
+  `commit`/`workload_commit` explicitly — worth a LEARNINGS note for
+  anyone hand-writing suite YAML with hash-like fields.
+- [2026-08-11][S01 recovery (P2)] RECOVERY:
+  - Found `sprint/S01-benchmark-harness` with T1 (b32b7e3) and T2 (e074718)
+    already committed, but T2 handoff was not recorded. T3 was fully staged
+    but not committed.
+  - Also in the working tree: an unrelated, half-finished
+    `scripts/cobra_orca_loop.py` change (advisory `fcntl` lock) that failed
+    `ruff B904`, plus an untracked `scripts/.cobra_loop.lock`.
+  - T3 verified: `uv run pytest benchmarks/harness -q` (56 passed),
+    `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+    `ruff check` / `ruff format --check` on `benchmarks/harness` (clean).
+    Committed to the sprint branch as
+    `S01: recovered work-in-progress (T3 timing protocol engine)`.
+  - Rescued the broken loop-harness WIP to `rescue/S01-2026-08-11`; reverted
+    `scripts/cobra_orca_loop.py` on the sprint branch and removed
+    `scripts/.cobra_loop.lock`. Working tree is now clean.
+  - STATE.md corrected to current task T4. Next: T4 — result schema +
+    statistics.
+- [2026-08-11][S01 executor (P0), T4] Done: implemented `cobra_bench.results`
+  (`SampleRecord` per §33.10 with optional fields to distinguish real-zero
+  from unavailable, JSON-lines and Parquet read/write), `cobra_bench.stats`
+  (median, p95/p99, geometric mean, coefficient of variation, bootstrap-95%
+  CI for both raw metric and baseline-relative speedup, significance when the
+  CI excludes 1.0x per §20.7), and `cobra_bench.analyze` + the unified
+  `cobra-bench` CLI entry point with the `analyze` subcommand. Added
+  `pyarrow>=19.0,<20` runtime dependency (recorded in `DECISIONS.md` as
+  D-006) and harness-local `[tool.mypy]` overrides for untyped pyarrow
+  imports. Generated artifacts: `summary.md`, `summary.json`, and
+  `confidence_intervals.csv`. Added 30 new TDD unit tests across
+  `test_results.py`, `test_stats.py`, and `test_analyze.py`. Validation:
+  `uv run pytest benchmarks/harness -q` (86 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `uv run ruff check benchmarks/harness` and `ruff format --check` (clean),
+  `./scripts/check.sh` (green). T4 checked; sprint `in_progress`; next is
+  T5 — CLI assembly (`doctor|verify|run|analyze|compare` and end-to-end
+  `cobra-bench run` with the example suite).
+- [2026-08-11][S01 executor (P0), T5+T6] Done: implemented the full
+  `cobra-bench` CLI assembly and anti-pattern guardrails. Added
+  `cobra_bench.runner` (entrypoint resolution, correctness-oracle factory,
+  warm-path timing via `TimingEngine`, cold-path subprocess placeholder,
+  sample recording to JSON-lines), `cobra_bench.compare` (threshold-based
+  comparison of two `summary.json` files), and `cobra_bench.guardrails`
+  (refuse mixed cold/warm samples, refuse different input fingerprints per
+  workload, warn on sample count <30, and require explicit `--no-oracle` to
+  time without a correctness hook with a loud warning). Extended
+  `cobra_bench.cli` with `doctor`, `verify`, `run`, `analyze`, and `compare`
+  subcommands per §33 command shapes; `cobra_bench.manifest` now supports an
+  optional `workload.input_fingerprint` for guardrail checks, and
+  `cobra_bench.stats`/`analyze` propagate phase and fingerprint into
+  summaries. Added 34 new TDD tests across `test_runner.py`,
+  `test_guardrails.py`, and `test_cli.py`. Validation:
+  `uv run pytest benchmarks/harness -q` (120 passed),
+  `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+  `uv run ruff check benchmarks/harness` and `ruff format --check` (clean),
+  `./scripts/check.sh` (green), and the sprint validation commands
+  (`doctor`, `run --phase warm`, `analyze`, `test -f summary.json`) all
+  succeed end-to-end. T5 and T6 checked; sprint ready for validation.
+  Surprises: the dummy `variant_b` is ~200x faster than `variant_a` on a
+  warm path because the closed-form sum finishes in sub-microsecond time,
+  confirming the harness is sensitive but also showing that a trivial
+  microbenchmark can produce extreme speedup ratios that should be
+  interpreted with care in public reports (§33.12 item 7).
+- [2026-08-11][S01 Validator (P1)] Validated and closed. Re-ran the full
+  sprint validation suite on a clean working tree: 120 harness tests pass,
+  `cobra-bench doctor|verify|run|analyze|compare` all work end-to-end on
+  macOS, and `./scripts/check.sh` is green. Fixed two CI gaps discovered
+  during validation: `scripts/ci/python-test.sh` now runs
+  `benchmarks/harness` tests (it previously only ran `test/python`) and
+  `scripts/ci/python-lint.sh` now type-checks the harness with mypy.
+  Merged `sprint/S01-benchmark-harness` into `main`. Next: S02.
