@@ -287,7 +287,8 @@ def ensure_run(status: dict[str, Any], dry_run: bool) -> str:
         "--objective",
         "Cobra autonomous sprint loop: execute, validate, and gate all sprints until v0.1",
     )
-    run_id = result.get("runId") or result.get("id")
+    run_data = result.get("run") if isinstance(result, dict) else None
+    run_id = run_data.get("id") if isinstance(run_data, dict) else None
     if not run_id:
         raise LoopError(f"Could not extract run_id from {result}")
     status["run_id"] = run_id
@@ -323,7 +324,8 @@ def dispatch_worker(
         "--spec",
         prompt,
     )
-    task_id = task_result.get("taskId") or task_result.get("id")
+    task_data = task_result.get("task") if isinstance(task_result, dict) else None
+    task_id = task_data.get("id") if isinstance(task_data, dict) else None
     if not task_id:
         raise LoopError(f"Could not extract task_id from {task_result}")
 
@@ -345,8 +347,18 @@ def dispatch_worker(
         worker_args += ["--effort", effort]
     worker_result = _orca_json(*worker_args)
 
-    dispatch_id = worker_result.get("dispatchId") or worker_result.get("id")
-    terminal_handle = worker_result.get("terminalHandle") or worker_result.get("handle")
+    # Worker-start may return a nested worker/dispatch object or a flat dict.
+    worker_data = worker_result.get("worker") if isinstance(worker_result, dict) else None
+    if not isinstance(worker_data, dict):
+        worker_data = worker_result
+
+    dispatch_id = worker_data.get("dispatchId") or worker_data.get("id")
+    terminal_handle = (
+        worker_data.get("terminalHandle")
+        or worker_data.get("agentTerminalHandle")
+        or worker_data.get("startupTerminal", {}).get("handle")
+        or worker_data.get("handle")
+    )
 
     return {
         "task_id": task_id,
@@ -367,10 +379,17 @@ def wait_for_messages(run_id: str, timeout_ms: int) -> list[dict[str, Any]]:
         "--timeout-ms",
         str(timeout_ms),
     )
-    # The Orca result shape may be a list directly or wrapped in "messages".
+    # The Orca result shape varies; accept a list, nested messages, or raw dict.
     if isinstance(result, list):
         return result
-    return result.get("messages", []) or []
+    if isinstance(result, dict):
+        messages = result.get("messages")
+        if isinstance(messages, list):
+            return messages
+        # A single message may be returned directly.
+        if result.get("type") in {"worker_done", "escalation", "question"}:
+            return [result]
+    return []
 
 
 def check_git_status() -> tuple[bool, str]:
