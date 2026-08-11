@@ -1,0 +1,34 @@
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+23.4,27306084,36,758502.3,579105.0,50907,2325738,759609.0,"void cudnn::engines_precompiled::convertTensor_kernel<float, float, float, (cudnnKernelDataType_t)2>(T3, const T1 *, T3, T2 *, unsigned long)"
+18.5,21640172,9,2404463.6,2055210.0,1298102,3260040,671190.5,void cutlass__5x_cudnn::Kernel<cutlass_tensorop_s1688fprop_optimized_tf32_128x64_32x3_nhwc_align4>(T1::Params)
+14.6,17027055,9,1891895.0,2380154.0,286866,2600832,956692.9,sm86_xmma_fprop_implicit_gemm_tf32f32_tf32f32_f32_nhwckrsc_nhwc_tilesize128x128x16_stage3_warpsize2x2x1_g1_tensor16x8x8_execute_kernel__5x_cudnn
+7.5,8799229,1,8799229.0,8799229.0,8799229,8799229,0.0,triton_poi_fused__native_batch_norm_legit_no_training_relu_2
+6.0,6969108,2,3484554.0,3484554.0,3473077,3496031,16230.9,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_6
+5.7,6692585,1,6692585.0,6692585.0,6692585,6692585,0.0,sm80_xmma_fprop_implicit_gemm_indexed_wo_smem_tf32f32_tf32f32_f32_nhwckrsc_nhwc_tilesize128x32x16_stage1_warpsize4x1x1_g1_tensor16x8x8_aligna4_execute_kernel__5x_cudnn
+5.0,5858170,1,5858170.0,5858170.0,5858170,5858170,0.0,triton_poi_fused__native_batch_norm_legit_no_training_max_pool2d_with_indices_relu_3
+3.8,4494408,2,2247204.0,2247204.0,2245263,2249145,2745.0,triton_poi_fused__native_batch_norm_legit_no_training_relu_5
+2.5,2876237,1,2876237.0,2876237.0,2876237,2876237,0.0,_5x_cudnn_ampere_scudnn_128x64_relu_interior_nn_v1
+2.1,2510170,3,836723.3,840068.0,826401,843701,9122.1,triton_poi_fused__native_batch_norm_legit_no_training_convolution_relu_19
+1.9,2272874,2,1136437.0,1136437.0,1126405,1146469,14187.4,triton_poi_fused__native_batch_norm_legit_no_training_relu_8
+1.5,1746260,1,1746260.0,1746260.0,1746260,1746260,0.0,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_11
+1.4,1688800,1,1688800.0,1688800.0,1688800,1688800,0.0,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_10
+1.4,1657989,1,1657989.0,1657989.0,1657989,1657989,0.0,triton_poi_fused_convolution_0
+0.9,1074567,2,537283.5,537283.5,535777,538790,2130.5,triton_poi_fused__native_batch_norm_legit_no_training_relu_13
+0.7,842676,1,842676.0,842676.0,842676,842676,0.0,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_16
+0.7,810375,1,810375.0,810375.0,810375,810375,0.0,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_15
+0.5,559041,3,186347.0,180146.0,175704,203191,14755.4,triton_poi_fused__native_batch_norm_legit_no_training_convolution_relu_14
+0.4,420701,1,420701.0,420701.0,420701,420701,0.0,triton_poi_fused_convolution_17
+0.3,310812,1,310812.0,310812.0,310812,310812,0.0,triton_poi_fused__native_batch_norm_legit_no_training_add_relu_20
+0.2,252017,2,126008.5,126008.5,40812,211205,120486.0,"void cudnn::engines_precompiled::nchwToNhwcKernel<float, float, float, (bool)0, (bool)1, (cudnnKernelDataType_t)2>(cudnn::engines_precompiled::nchw2nhwc_params_t<T3>, const T1 *, T2 *)"
+0.2,177349,3,59116.3,59634.0,56186,61529,2708.9,triton_poi_fused__native_batch_norm_legit_no_training_convolution_relu_9
+0.1,168995,1,168995.0,168995.0,168995,168995,0.0,triton_per_fused__native_batch_norm_legit_no_training_add_mean_relu_21
+0.1,119610,1,119610.0,119610.0,119610,119610,0.0,ampere_sgemm_64x32_sliced1x4_tn
+0.1,102963,4,25740.8,26463.0,22487,27550,2303.8,triton_poi_fused_convolution_4
+0.1,102900,1,102900.0,102900.0,102900,102900,0.0,triton_poi_fused_convolution_12
+0.1,67710,2,33855.0,33855.0,33172,34538,965.9,triton_poi_fused__native_batch_norm_legit_no_training_relu_18
+0.1,67648,1,67648.0,67648.0,67648,67648,0.0,"void at::native::sbtopk::gatherTopK<float, unsigned int, (int)2, (bool)0>(at::cuda::detail::TensorInfo<const T1, T2>, T2, T2, bool, T2, T2, at::cuda::detail::TensorInfo<T1, T2>, T2, at::cuda::detail::TensorInfo<long, T2>, T2, T1 *)"
+0.0,38669,1,38669.0,38669.0,38669,38669,0.0,triton_poi_fused_convolution_1
+0.0,36930,1,36930.0,36930.0,36930,36930,0.0,triton_poi_fused_convolution_7
+0.0,31898,1,31898.0,31898.0,31898,31898,0.0,"void <unnamed>::softmax_warp_forward<float, float, float, (int)10, (bool)0, (bool)0, (int)32>(T2 *, const T1 *, int, int, int, const bool *, int, bool)"
+0.0,16492,1,16492.0,16492.0,16492,16492,0.0,"void cublasLt::splitKreduce_kernel<(int)32, (int)16, int, float, float, float, float, (bool)0, float, float, float, (bool)1, (bool)1, (bool)0, (bool)0>(cublasLt::cublasSplitKParams<T6>, const T4 *, const T10 *, T9 *, T5 *, const T6 *, const T6 *, const T11 *, const T4 *, T11 *, void *, long, T6 *, int *, T6 *, T6 *, const T6 *, const T6 *, const T6 *, const T6 *, const T6 *)"
+0.0,13200,1,13200.0,13200.0,13200,13200,0.0,"void cask__5x_cudnn::computeOffsetsKernel<(bool)0, (bool)0>(cask__5x_cudnn::ComputeOffsetsParams)"

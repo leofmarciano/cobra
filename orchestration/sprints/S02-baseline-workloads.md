@@ -73,7 +73,7 @@ Cobra must beat at S05/S21.
 - Accept: all six variant×workload combos run green through the harness.
 
 ### T5 — Baseline measurement + profiler evidence
-- [ ] Do: on the GPU host: `verify` then `run` (cold + warm, ≥30 samples)
+- [x] Do: on the GPU host: `verify` then `run` (cold + warm, ≥30 samples)
   then `analyze`. Capture `nsys` traces for b0 and b1 of each workload
   (one representative iteration). Write
   `docs/benchmarks/phase0-baseline.md`: absolute times, CIs, and a
@@ -188,3 +188,33 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 - Recorded the pins and rationale in `support-matrix.yaml` (ubuntu-24.04/x86_64 platform row) and mirrored the summary into `STATE.md` Environment table.
 - Note for Validator/next executor: these are pins only — torch/numpy/pandas/pyarrow/cudf are not yet added as real project dependencies. T1-T4 must add them (`uv add` under the harness or workload package) using exactly these versions, and record the dependency add in this log + `DECISIONS.md` per PROTOCOL §6/§7.
 - T0 checked off. Next task: T1 (`parquet_feature_inference` workload).
+
+**2026-08-11 — S02 executor (P0), T5 complete**
+- Booted on `sprint/S02-baseline-workloads`, clean tree, STATE consistent.
+- Installed `cudf-cu13==26.6.0` as a real dependency in
+  `benchmarks/pipelines/pyproject.toml`; `uv.lock` updated.
+- Fixed `_engineer_features` in `parquet_feature_inference.py` to normalize
+  in NumPy and reconstruct a DataFrame, avoiding a cudf.pandas column-alignment
+  assertion under `(numeric - mean) / std`.
+- Ran `cobra-bench verify` for phase0 (b0,b1): all 3 workloads passed.
+- Ran `cobra-bench run --phase warm --seed 42` for phase0: 180 samples total
+  (30 per workload×variant).
+- Ran `cobra-bench analyze --seed 42`: produced
+  `artifacts/analysis/phase0/{summary.md,summary.json,confidence_intervals.csv}`.
+- Captured Nsight Systems 2024.4.1 traces for all 6 workload×variant combos;
+  applied the WSL2 `CuptiUseRawGpuTimestamps=false` workaround so GPU kernel
+  data appears. Trace files and CSV summaries committed under
+  `artifacts/traces/phase0/` (`.nsys-rep` = 54 MiB total, sqlite temp files
+  removed).
+- Wrote `docs/benchmarks/phase0-baseline.md` with absolute times, CIs,
+  anti-pattern check, and bottleneck analysis per workload.
+- `./scripts/check.sh` passes (123 tests, 0 failures).
+- T5 checked off. Sprint is now complete; next step is validation (`P1-validate.md`).
+- Surprises/decisions:
+  - B1 is slightly slower than B0 on two of three workloads at this scale
+    (parquet: 0.897x, ensemble: 0.944x, cv: 1.041x). This is acceptable for a
+    baseline — it defines the product baseline Cobra must beat.
+  - cudf.pandas required a small code change to avoid a DataFrame arithmetic
+    assertion; the fix preserves the same numerical output.
+  - Nsight Systems CLI was not pre-installed; extracted the 2024.4.1 CLI-only
+    `.deb` to `/tmp/nsys-root` and added the WSL2 timestamp workaround.

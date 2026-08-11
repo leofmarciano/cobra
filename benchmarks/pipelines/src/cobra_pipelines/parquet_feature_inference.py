@@ -153,9 +153,15 @@ def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     # Normalize each column to zero mean and unit variance using the data
     # statistics themselves (a realistic preprocessing step).
     numeric = df[numeric_cols].astype(np.float64)
-    mean = numeric.mean()
-    std = numeric.std(ddof=0).replace(0.0, 1.0)
-    return (numeric - mean) / std
+    # Compute in NumPy to avoid subtle column-alignment differences between
+    # pandas and cudf.pandas; reconstruct a DataFrame to keep downstream
+    # expectations stable.
+    values = numeric.to_numpy(dtype=np.float64)
+    mean = np.mean(values, axis=0)
+    std = np.std(values, axis=0, ddof=0)
+    std = np.where(std == 0.0, 1.0, std)
+    normalized = (values - mean) / std
+    return pd.DataFrame(normalized, columns=numeric_cols, index=numeric.index)
 
 
 class _SmallMLP(nn.Module):

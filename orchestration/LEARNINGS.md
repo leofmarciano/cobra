@@ -37,9 +37,21 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   `nvidia-cuda-runtime-cu13`, etc. ship as transitive pip deps of the
   cu13-tagged wheels and are sufficient for pip-wheel-based (non-native-build)
   workloads.
+- [2026-08-11][S02] `cudf.pandas` can raise a pandas `AssertionError` on
+  DataFrame arithmetic such as `(numeric - mean) / std` because the proxy
+  DataFrame/Series column alignment differs subtly from native pandas. Fix:
+  drop to NumPy for the arithmetic (`numeric.to_numpy()`) and reconstruct a
+  plain pandas DataFrame, preserving downstream callers that expect a
+  DataFrame interface.
 
 ## CUDA / GPU host
 
+- [2026-08-11][S02] On WSL2, Nsight Systems CLI may capture the CUDA API trace
+  but produce empty GPU kernel data because GPU→CPU timestamp conversion fails.
+  Workaround: set `CuptiUseRawGpuTimestamps=false` in the file reported by
+  `nsys -z` (`~/.config/NVIDIA Corporation/nsys-config.ini`) before profiling.
+  The resulting traces are less precise but GPU kernels appear on the timeline
+  and in `cuda_gpu_kern_sum` reports.
 - [2026-08-11][S02] `torch.compile` with the Inductor backend calls
   `nvcc --version` during repro/debug graph serialization. If `nvcc` is not
   on PATH (pip-wheel install puts it under `site-packages/nvidia/cu13/bin/`),
