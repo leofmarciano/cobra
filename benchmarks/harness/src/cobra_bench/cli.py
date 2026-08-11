@@ -232,15 +232,15 @@ def _run_verify(args: argparse.Namespace) -> int:
     reports = []
     for workload in manifest.workloads:
         selected = variants if variants is not None else [v.name for v in workload.variants]
-        correctness = manifest.correctness
-        comparator = correctness.comparator if correctness else "exact"
+        correctness = manifest.correctness_for(workload)
+        comparator = correctness.comparator or "exact"
         reports.append(
             verify_workload(
                 workload,
                 selected,
                 comparator=comparator,
-                rtol_by_dtype=correctness.rtol_by_dtype if correctness else None,
-                atol_by_dtype=correctness.atol_by_dtype if correctness else None,
+                rtol_by_dtype=correctness.rtol_by_dtype,
+                atol_by_dtype=correctness.atol_by_dtype,
             )
         )
     write_correctness_report(reports, Path(args.output))

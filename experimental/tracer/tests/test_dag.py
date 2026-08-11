@@ -71,6 +71,19 @@ def test_mutation_forces_ordering_between_producers() -> None:
     }
 
 
+def test_mutation_waits_for_intervening_reader() -> None:
+    events = [
+        _ev(0, "torch", "produce", outputs=("tensor:0",)),
+        _ev(1, "torch", "read", inputs=("tensor:0",), outputs=("tensor:1",)),
+        _ev(2, "torch", "mutate_", inputs=("tensor:0",), outputs=("tensor:0",)),
+    ]
+
+    edges = _edges(build_dag(events))
+
+    assert (0, 1, "data") in edges
+    assert (1, 2, "order") in edges
+
+
 def test_opaque_node_gets_ordering_edges_to_neighbors() -> None:
     # Pure side-effect opaque nodes with no data dependencies to/from their
     # neighbors: only program-order edges should connect them.

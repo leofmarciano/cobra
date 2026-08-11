@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 from tracer.session import trace
 
@@ -37,3 +38,11 @@ def test_unwrapping_restores_originals() -> None:
     with trace(enable_torch=False, enable_numpy=False):
         assert pd.DataFrame.fillna is not original
     assert pd.DataFrame.fillna is original
+
+
+def test_to_numpy_crosses_into_numpy_tracing() -> None:
+    with trace(enable_torch=False) as session:
+        array = pd.DataFrame({"a": [1.0, 2.0]}).to_numpy()
+        np.mean(array)
+
+    assert any(event.kind == "numpy" and event.op.endswith("mean") for event in session.events)

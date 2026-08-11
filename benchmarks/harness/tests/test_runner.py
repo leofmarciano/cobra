@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cobra_bench import runner as runner_module
 from cobra_bench.manifest import BenchmarkManifest, ProtocolInfo, VariantSpec, WorkloadSpec
 from cobra_bench.runner import (
     TimingOptions,
@@ -135,6 +136,52 @@ class TestBuildOracle:
             atol_by_dtype={"float64": 1e-8},
         )
         assert oracle({"mean": 1.1, "total": 42}) is False
+
+    def test_approx_compares_integer_leaves_exactly(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        expected = {"n_rows": 100_000}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="approx", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float": 1e-3},
+            atol_by_dtype={"float": 1e-3},
+        )
+
+        assert oracle({"n_rows": 100_001}) is False
+
+
+def test_verify_reuses_loaded_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verification must not execute the baseline again just to build its oracle."""
+    expected = {"value": 1}
+    load_calls = 0
+    resolve_calls = 0
+
+    def load(_variant: VariantSpec) -> dict[str, int]:
+        nonlocal load_calls
+        load_calls += 1
+        return expected
+
+    def resolve(_entrypoint: str):
+        nonlocal resolve_calls
+        resolve_calls += 1
+        return lambda: expected
+
+    monkeypatch.setattr(runner_module, "_load_expected", load)
+    monkeypatch.setattr(runner_module, "resolve_entrypoint", resolve)
+    workload = WorkloadSpec(
+        name="reuse-baseline",
+        variants=[
+            VariantSpec(name="a", entrypoint="example:a"),
+            VariantSpec(name="b", entrypoint="example:b"),
+        ],
+    )
+
+    report = verify_workload(workload, ["a", "b"], comparator="exact")
+
+    assert report.passed is True
+    assert load_calls == 1
+    assert resolve_calls == 1
 
 
 class TestRunAndRecord:

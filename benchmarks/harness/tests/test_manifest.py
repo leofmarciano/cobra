@@ -116,3 +116,32 @@ def test_default_protocol_values() -> None:
     assert manifest.protocol.configuration_order == "randomized"
     assert manifest.protocol.correctness_required is True
     assert manifest.protocol.confidence_interval == "bootstrap-95"
+
+
+def test_workload_correctness_overrides_global_profile() -> None:
+    manifest = manifest_from_dict(
+        {
+            "run_id": "r1",
+            "suite": "s1",
+            "correctness": {
+                "comparator": "approx",
+                "rtol_by_dtype": {"float64": 1e-5},
+                "atol_by_dtype": {"float64": 1e-8},
+            },
+            "workloads": [
+                {
+                    "name": "vision",
+                    "correctness": {
+                        "rtol_by_dtype": {"float": 1e-3},
+                        "atol_by_dtype": {"float": 1e-3},
+                    },
+                    "variants": [],
+                }
+            ],
+        }
+    )
+
+    correctness = manifest.correctness_for(manifest.workloads[0])
+    assert correctness.comparator == "approx"
+    assert correctness.rtol_by_dtype == {"float64": 1e-5, "float": 1e-3}
+    assert correctness.atol_by_dtype == {"float64": 1e-8, "float": 1e-3}

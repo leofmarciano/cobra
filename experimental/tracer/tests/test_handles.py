@@ -43,3 +43,13 @@ def test_collect_handles_flattens_and_filters() -> None:
     t = torch.zeros(2)
     handles = collect_handles([1, "x", t, None])
     assert handles == (handle_for(t),)
+
+
+def test_collect_handles_recurses_nested_containers_and_mappings() -> None:
+    first = torch.zeros(2)
+    second = torch.ones(2)
+    values = {"batch": [(first,)], "other": {"tensor": second}}
+
+    handles = collect_handles(values)
+
+    assert handles == (handle_for(first), handle_for(second))

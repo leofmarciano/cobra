@@ -148,6 +148,37 @@ def test_parallel_region_found_for_independent_branches() -> None:
     assert region["parallelizable_ns"] == 15  # min(a,b) saved if overlapped
 
 
+def test_parallel_region_uses_earliest_common_join() -> None:
+    events = [
+        _ev(0, "torch", "input", outputs=("t:0",), duration_ns=5),
+        _ev(1, "torch", "branch_a", inputs=("t:0",), outputs=("t:1",), duration_ns=20),
+        _ev(2, "torch", "branch_b", inputs=("t:0",), outputs=("t:2",), duration_ns=15),
+        _ev(3, "torch", "add", inputs=("t:1", "t:2"), outputs=("t:3",), duration_ns=2),
+        _ev(4, "torch", "summary", inputs=("t:3",), outputs=("t:4",), duration_ns=7),
+    ]
+
+    regions = analyze(build_dag(events))["parallel_regions"]
+
+    assert len(regions) == 1
+    assert regions[0]["join_op"] == "add"
+    assert regions[0]["nodes"] == [0, 1, 2, 3]
+
+
+def test_parallelizable_work_is_summed_per_branch() -> None:
+    events = [
+        _ev(0, "torch", "input", outputs=("t:0",), duration_ns=1),
+        _ev(1, "torch", "branch_a", inputs=("t:0",), outputs=("t:1",), duration_ns=10),
+        _ev(2, "torch", "branch_b", inputs=("t:0",), outputs=("t:2",), duration_ns=5),
+        _ev(3, "torch", "branch_a_tail", inputs=("t:1",), outputs=("t:3",), duration_ns=10),
+        _ev(4, "torch", "join", inputs=("t:3", "t:2"), outputs=("t:4",), duration_ns=2),
+    ]
+
+    regions = analyze(build_dag(events))["parallel_regions"]
+
+    assert len(regions) == 1
+    assert regions[0]["parallelizable_ns"] == 5
+
+
 def test_no_parallel_region_for_sequential_chain() -> None:
     events = [
         _ev(0, "torch", "a", outputs=("t:0",), duration_ns=1),

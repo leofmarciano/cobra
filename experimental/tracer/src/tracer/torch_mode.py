@@ -5,11 +5,25 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import torch
 from torch.overrides import TorchFunctionMode
 
+from tracer.numpy_wrap import wrap as wrap_numpy
 from tracer.session import TraceSession
 
 _THIS_DIR = str(Path(__file__).resolve().parent)
+
+
+def _contains_cuda_value(value: Any) -> bool:
+    """Return whether a value or nested container carries CUDA work."""
+    if isinstance(value, dict):
+        return any(_contains_cuda_value(nested) for nested in value.values())
+    if isinstance(value, list | tuple | set):
+        return any(_contains_cuda_value(nested) for nested in value)
+    if isinstance(value, torch.Tensor):
+        return bool(value.is_cuda)
+    return bool(getattr(value, "is_cuda", False))
 
 
 class TracingTorchFunctionMode(TorchFunctionMode):
@@ -35,6 +49,12 @@ class TracingTorchFunctionMode(TorchFunctionMode):
         kwargs = kwargs or {}
         start_ns = self._session.clock()
         result = func(*args, **kwargs)
+        if isinstance(result, np.ndarray):
+            result = wrap_numpy(result)
+        if torch.cuda.is_available() and _contains_cuda_value((args, kwargs, result)):
+            # CUDA calls are asynchronous.  Synchronize before taking the end
+            # timestamp so analyzer durations include device completion.
+            torch.cuda.synchronize()
         end_ns = self._session.clock()
 
         name = getattr(func, "__qualname__", None) or getattr(func, "__name__", str(func))

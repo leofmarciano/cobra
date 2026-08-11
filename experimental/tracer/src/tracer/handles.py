@@ -9,6 +9,7 @@ to connect producer/consumer events correctly even across views.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 try:
@@ -59,11 +60,23 @@ def _is_scalar_container(value: Any) -> bool:
 
 
 def collect_handles(values: Any) -> tuple[str, ...]:
-    """Flatten ``values`` (a single value, or list/tuple of values) into handles."""
-    candidates = values if isinstance(values, list | tuple) else [values]
-    handles = []
-    for v in candidates:
-        h = handle_for(v)
-        if h is not None:
+    """Recursively collect value handles from nested operation arguments."""
+    handles: list[str] = []
+    seen: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, Mapping):
+            for nested in value.values():
+                visit(nested)
+            return
+        if isinstance(value, list | tuple):
+            for nested in value:
+                visit(nested)
+            return
+        h = handle_for(value)
+        if h is not None and h not in seen:
+            seen.add(h)
             handles.append(h)
+
+    visit(values)
     return tuple(handles)

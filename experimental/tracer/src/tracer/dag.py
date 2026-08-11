@@ -39,6 +39,7 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
     nodes = [_node_from_event(e) for e in events]
     edges: set[tuple[int, int, str]] = set()
     last_producer: dict[str, int] = {}
+    readers_since_write: dict[str, set[int]] = {}
 
     for event in events:
         eid = event.id
@@ -46,12 +47,17 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
             producer = last_producer.get(handle)
             if producer is not None and producer != eid:
                 edges.add((producer, eid, "data"))
+            readers_since_write.setdefault(handle, set()).add(eid)
 
         for handle in event.output_handles:
             previous = last_producer.get(handle)
             if previous is not None and previous != eid:
                 edges.add((previous, eid, "order"))
+            for reader in readers_since_write.get(handle, set()):
+                if reader != eid:
+                    edges.add((reader, eid, "order"))
             last_producer[handle] = eid
+            readers_since_write.pop(handle, None)
 
     _add_opaque_ordering_edges(events, edges)
 

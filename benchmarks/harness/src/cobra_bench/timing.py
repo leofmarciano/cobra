@@ -58,6 +58,7 @@ class TimingConfig:
     """Configuration for the timing protocol engine."""
 
     warmup_policy: str = "stability"
+    warmup_samples: int = 5
     minimum_samples: int = 30
     max_warmup: int = 100
     stability_band: float = 0.05
@@ -185,6 +186,13 @@ class TimingEngine:
         """Run warmup samples until stability is reached or max_warmup exceeded."""
         cfg = self.config
         times: list[float] = []
+
+        if cfg.warmup_policy == "fixed":
+            for _ in range(cfg.warmup_samples):
+                times.append(self._take_sample(workload, oracle, warmup=True).elapsed_s)
+            return times
+        if cfg.warmup_policy != "stability":
+            raise ValueError(f"unsupported warmup policy: {cfg.warmup_policy!r}")
 
         for _ in range(cfg.max_warmup):
             sample = self._take_sample(workload, oracle, warmup=True)

@@ -260,7 +260,7 @@ def _find_parallel_regions(
 
     The reported ``span_ns`` is the sum of durations of all nodes between the
     fork and join (inclusive), and ``parallelizable_ns`` estimates the work
-    that could overlap (the sum of branch durations).
+    that could overlap (total exclusive branch work minus the longest branch).
     """
     data_edges = [e for e in dag["edges"] if e["kind"] == "data"]
     data_succs: dict[int, list[int]] = defaultdict(list)
@@ -288,8 +288,15 @@ def _find_parallel_regions(
                         continue
                     seen.add(key)
                     between = _nodes_between(fork_id, join_id, succs, preds)
-                    branch_nodes = [n for n in between if n not in (fork_id, join_id)]
-                    branch_durations = [int(node_map[nid]["duration_ns"]) for nid in branch_nodes]
+                    branch1 = set(_nodes_between(c1, join_id, succs, preds)) - {join_id}
+                    branch2 = set(_nodes_between(c2, join_id, succs, preds)) - {join_id}
+                    shared = branch1 & branch2
+                    branch1 -= shared
+                    branch2 -= shared
+                    branch_work = [
+                        sum(int(node_map[nid]["duration_ns"]) for nid in branch1),
+                        sum(int(node_map[nid]["duration_ns"]) for nid in branch2),
+                    ]
                     regions.append(
                         {
                             "fork_id": fork_id,
@@ -299,9 +306,7 @@ def _find_parallel_regions(
                             "branch_ids": [c1, c2],
                             "nodes": between,
                             "span_ns": sum(int(node_map[nid]["duration_ns"]) for nid in between),
-                            "parallelizable_ns": (
-                                sum(branch_durations) - max(branch_durations, default=0)
-                            ),
+                            "parallelizable_ns": sum(branch_work) - max(branch_work, default=0),
                         }
                     )
 
@@ -323,13 +328,15 @@ def _reachable(start: int, succs: dict[int, set[int]]) -> set[int]:
 
 
 def _minimal_common_descendants(sources: list[int], succs: dict[int, set[int]]) -> list[int]:
-    """Return common descendants that do not themselves have a common descendant."""
+    """Return earliest common descendants in the graph."""
     reachable_sets = [_reachable(s, succs) for s in sources]
     common = set.intersection(*reachable_sets) if reachable_sets else set()
     minimal: list[int] = []
     for c in common:
-        downstream = _reachable(c, succs)
-        if not any(other != c and other in downstream for other in common):
+        has_earlier_common_ancestor = any(
+            other != c and c in _reachable(other, succs) for other in common
+        )
+        if not has_earlier_common_ancestor:
             minimal.append(c)
     return sorted(minimal)
 

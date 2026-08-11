@@ -13,8 +13,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
+from tracer.numpy_wrap import wrap as wrap_numpy
 from tracer.session import TraceSession
 
 # plan §10.1 v0.1 supported operations, mapped to the pandas API names that
@@ -50,6 +52,8 @@ def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any]
         start_ns = session.clock()
         result = original(self, *args, **kwargs)
         end_ns = session.clock()
+        if isinstance(result, np.ndarray):
+            result = wrap_numpy(result)
         session.record(
             "pandas",
             f"pandas.{cls.__name__}.{name}",

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import threading
 import time
+from unittest.mock import MagicMock
 
+import numpy as np
 import torch
 from tracer.handles import handle_for
-from tracer.session import trace
+from tracer.session import TraceSession, trace
+from tracer.torch_mode import TracingTorchFunctionMode
 
 
 def test_records_torch_ops_with_metadata() -> None:
@@ -64,3 +67,28 @@ def test_tracer_overhead_under_10x_eager() -> None:
     # Guard against a near-zero eager baseline making the ratio noisy.
     eager_elapsed = max(eager_elapsed, 1e-4)
     assert traced_elapsed < eager_elapsed * 10
+
+
+def test_tensor_numpy_boundary_crosses_into_numpy_tracing() -> None:
+    with trace(enable_pandas=False) as session:
+        array = torch.arange(4).numpy()
+        np.mean(array)
+
+    assert any(event.kind == "numpy" and event.op.endswith("mean") for event in session.events)
+
+
+def test_cuda_results_are_synchronized_before_timing(monkeypatch) -> None:
+    class FakeCudaValue:
+        is_cuda = True
+
+    sync = MagicMock()
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "synchronize", sync)
+
+    def fake_cuda_op() -> FakeCudaValue:
+        return FakeCudaValue()
+
+    mode = TracingTorchFunctionMode(TraceSession())
+    mode.__torch_function__(fake_cuda_op, (), (), {})
+
+    sync.assert_called_once_with()

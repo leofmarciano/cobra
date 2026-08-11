@@ -82,6 +82,7 @@ class ProtocolInfo:
     """Measurement protocol configuration (plan §33.1 ``protocol:`` section)."""
 
     warmup_policy: str = "stability"
+    warmup_samples: int = 5
     minimum_samples: int = 30
     configuration_order: str = "randomized"
     correctness_required: bool = True
@@ -114,6 +115,7 @@ class WorkloadSpec:
     name: str
     variants: list[VariantSpec] = field(default_factory=list)
     input_fingerprint: str | None = None
+    correctness: CorrectnessInfo | None = None
 
 
 @dataclass
@@ -131,6 +133,24 @@ class BenchmarkManifest:
     protocol: ProtocolInfo = field(default_factory=ProtocolInfo)
     correctness: CorrectnessInfo | None = None
     workloads: list[WorkloadSpec] = field(default_factory=list)
+
+    def correctness_for(self, workload: WorkloadSpec) -> CorrectnessInfo:
+        """Return global correctness settings merged with workload overrides."""
+        base = self.correctness or CorrectnessInfo()
+        override = workload.correctness
+        if override is None:
+            return CorrectnessInfo(
+                comparator=base.comparator,
+                rtol_by_dtype=dict(base.rtol_by_dtype),
+                atol_by_dtype=dict(base.atol_by_dtype),
+                equal_nan=base.equal_nan,
+            )
+        return CorrectnessInfo(
+            comparator=override.comparator if override.comparator is not None else base.comparator,
+            rtol_by_dtype={**base.rtol_by_dtype, **override.rtol_by_dtype},
+            atol_by_dtype={**base.atol_by_dtype, **override.atol_by_dtype},
+            equal_nan=override.equal_nan,
+        )
 
 
 def _type_name(value: Any) -> str:
@@ -251,6 +271,9 @@ def _build_protocol(raw: Any, path: str, errors: list[str]) -> ProtocolInfo:
         warmup_policy=_pop_field(
             data, "warmup_policy", str, path, errors, default=defaults.warmup_policy
         ),
+        warmup_samples=_pop_field(
+            data, "warmup_samples", int, path, errors, default=defaults.warmup_samples
+        ),
         minimum_samples=_pop_field(
             data, "minimum_samples", int, path, errors, default=defaults.minimum_samples
         ),
@@ -292,6 +315,8 @@ def _build_protocol(raw: Any, path: str, errors: list[str]) -> ProtocolInfo:
         )
     if info.minimum_samples < 1:
         errors.append(f"{path}.minimum_samples: must be >= 1, got {info.minimum_samples}")
+    if info.warmup_samples < 1:
+        errors.append(f"{path}.warmup_samples: must be >= 1, got {info.warmup_samples}")
     return info
 
 
@@ -346,6 +371,7 @@ def _build_workload(raw: Any, path: str, errors: list[str]) -> WorkloadSpec | No
     name = _pop_field(data, "name", str, path, errors, required=True)
     raw_variants = data.pop("variants", None)
     input_fingerprint = _pop_field(data, "input_fingerprint", str, path, errors)
+    correctness = _build_correctness(data.pop("correctness", None), f"{path}.correctness", errors)
     variants: list[VariantSpec] = []
     if raw_variants is None:
         errors.append(f"{path}.variants: required field is missing")
@@ -359,7 +385,12 @@ def _build_workload(raw: Any, path: str, errors: list[str]) -> WorkloadSpec | No
     _reject_unknown(data, path, errors)
     if name is None:
         return None
-    return WorkloadSpec(name=name, variants=variants, input_fingerprint=input_fingerprint)
+    return WorkloadSpec(
+        name=name,
+        variants=variants,
+        input_fingerprint=input_fingerprint,
+        correctness=correctness,
+    )
 
 
 def manifest_from_dict(data: dict[str, Any], *, strict: bool = False) -> BenchmarkManifest:

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -64,3 +66,27 @@ def test_b1_produces_same_result_as_b0() -> None:
     # Float results may differ slightly due to compilation, but must be close
     assert abs(b0_result["mean_score"] - b1_result["mean_score"]) < 1e-4
     assert abs(b0_result["score_sum"] - b1_result["score_sum"]) < 1e-2
+
+
+def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The cuDF variant must execute outside the B0 interpreter process."""
+    monkeypatch.setattr(parquet_feature_inference, "_cudf_pandas_available", lambda: True)
+    monkeypatch.delenv(parquet_feature_inference._B1_WORKER_ENV, raising=False)
+    seen: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        seen["command"] = command
+        seen["env"] = kwargs["env"]
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            stdout=json.dumps({"n_rows": 1}),
+            stderr="",
+        )
+
+    monkeypatch.setattr(parquet_feature_inference.subprocess, "run", fake_run)
+
+    assert parquet_feature_inference.b1() == {"n_rows": 1}
+    worker_env = seen["env"]
+    assert isinstance(worker_env, dict)
+    assert worker_env[parquet_feature_inference._B1_WORKER_ENV] == "1"

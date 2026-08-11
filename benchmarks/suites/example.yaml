@@ -18,7 +18,8 @@ software:
   python: "3.13"
 
 protocol:
-  warmup_policy: stability
+  warmup_policy: fixed
+  warmup_samples: 5
   minimum_samples: 30
   configuration_order: randomized
   correctness_required: true

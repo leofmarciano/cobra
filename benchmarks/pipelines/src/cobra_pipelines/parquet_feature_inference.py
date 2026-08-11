@@ -20,17 +20,22 @@ compared exactly (plan §33.4).
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
 import torch.nn as nn
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 DATA_DIR_ENV = "COBRA_DATA_DIR"
 N_ROWS_ENV = "COBRA_PARQUET_ROWS"
@@ -38,6 +43,19 @@ SEED_ENV = "COBRA_PARQUET_SEED"
 
 DEFAULT_N_ROWS = 100_000
 DEFAULT_SEED = 42
+_B1_WORKER_ENV = "COBRA_PARQUET_B1_WORKER"
+_B1_WORKER_CODE = (
+    "import json; "
+    "from cobra_pipelines.parquet_feature_inference import _b1_inprocess; "
+    "print(json.dumps(_b1_inprocess(), sort_keys=True))"
+)
+
+
+def _pandas_module() -> Any:
+    """Import pandas only after a variant has selected its execution mode."""
+    import pandas as pd
+
+    return pd
 
 
 def _default_data_dir() -> Path:
@@ -119,6 +137,7 @@ def generate_dataset(
 
 def _read_and_filter(parquet_path: str) -> pd.DataFrame:
     """read_parquet + deterministic filter."""
+    pd = _pandas_module()
     df = pd.read_parquet(parquet_path)
     # Keep rows where feature_a is above a threshold, flag is true, and score
     # is present.  This exercises a mixed boolean/numeric/null filter.
@@ -127,6 +146,7 @@ def _read_and_filter(parquet_path: str) -> pd.DataFrame:
 
 def _engineer_features(df: pd.DataFrame) -> pd.DataFrame:
     """Pandas feature engineering: fill nulls, interaction term, one-hots."""
+    pd = _pandas_module()
     df = df.copy()
     df["feature_c"] = df["feature_a"] * df["feature_b"] + df["group"].astype(np.float64)
     df["score_filled"] = df["score"].fillna(5.0)
@@ -271,8 +291,8 @@ def _cudf_pandas_available() -> bool:
         return False
 
 
-def b1() -> dict[str, Any]:
-    """B1: torch.compile on MLP + cudf.pandas acceleration (plan §20.2).
+def _b1_inprocess() -> dict[str, Any]:
+    """Run B1 where cuDF is allowed to install its import hook.
 
     Strongest automatic composition without manual restructuring:
     - torch.compile(mode="default", fullgraph=False) on the MLP.
@@ -305,6 +325,36 @@ def b1() -> dict[str, Any]:
     features = _engineer_features(df)
     scores = _mlp_scores_compiled(features, seed)
     return _project(scores, len(df))
+
+
+def _run_b1_isolated() -> dict[str, Any]:
+    """Run the cuDF variant in a child process so B0 remains plain pandas."""
+    environment = os.environ.copy()
+    environment[_B1_WORKER_ENV] = "1"
+    process = subprocess.run(
+        [sys.executable, "-c", _B1_WORKER_CODE],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+    if process.returncode != 0:
+        detail = process.stderr.strip() or process.stdout.strip()
+        raise RuntimeError(f"isolated parquet B1 failed: {detail}")
+    try:
+        result = json.loads(process.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("isolated parquet B1 returned invalid JSON") from exc
+    if not isinstance(result, dict):
+        raise RuntimeError("isolated parquet B1 returned a non-object result")
+    return cast(dict[str, Any], result)
+
+
+def b1() -> dict[str, Any]:
+    """B1: torch.compile + cudf.pandas, isolated from other variants."""
+    if _cudf_pandas_available() and os.environ.get(_B1_WORKER_ENV) != "1":
+        return _run_b1_isolated()
+    return _b1_inprocess()
 
 
 def dataset_fingerprint() -> str:

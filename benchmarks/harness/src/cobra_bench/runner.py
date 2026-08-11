@@ -127,6 +127,10 @@ def _approx_equal(
             for e, a in zip(expected, actual, strict=False)
         )
 
+    if isinstance(expected, int) and isinstance(actual, int):
+        # Counts, IDs, and other integral leaves are never approximate.
+        return expected == actual
+
     if isinstance(expected, int | float) and isinstance(actual, int | float):
         # Use tolerance for real numbers; bools and strings are handled above.
         key = _float_key(expected, actual, rtol_by_dtype)
@@ -135,6 +139,22 @@ def _approx_equal(
         return math.isclose(float(expected), float(actual), rel_tol=rtol, abs_tol=atol)
 
     return bool(expected == actual)
+
+
+def _oracle_for_expected(
+    expected: Any,
+    *,
+    comparator: str | None,
+    rtol_by_dtype: dict[str, float] | None,
+    atol_by_dtype: dict[str, float] | None,
+) -> Callable[[Any], bool]:
+    """Build an oracle from an already loaded baseline result."""
+    if comparator == "exact":
+        return _exact_oracle(expected)
+    if comparator == "approx":
+        return _approx_oracle(expected, rtol_by_dtype=rtol_by_dtype, atol_by_dtype=atol_by_dtype)
+    msg = f"unsupported correctness comparator: {comparator!r}"
+    raise ValueError(msg)
 
 
 def _approx_oracle(
@@ -166,12 +186,12 @@ def build_oracle(
     for integers, strings, and booleans (plan §33.4).
     """
     expected = _load_expected(baseline_variant)
-    if comparator == "exact":
-        return _exact_oracle(expected)
-    if comparator == "approx":
-        return _approx_oracle(expected, rtol_by_dtype=rtol_by_dtype, atol_by_dtype=atol_by_dtype)
-    msg = f"unsupported correctness comparator: {comparator!r}"
-    raise ValueError(msg)
+    return _oracle_for_expected(
+        expected,
+        comparator=comparator,
+        rtol_by_dtype=rtol_by_dtype,
+        atol_by_dtype=atol_by_dtype,
+    )
 
 
 @dataclass
@@ -210,9 +230,8 @@ def verify_workload(
 
     baseline_name, baseline_variant = selected[0]
     expected = _load_expected(baseline_variant)
-    oracle = build_oracle(
-        workload,
-        baseline_variant,
+    oracle = _oracle_for_expected(
+        expected,
         comparator=comparator,
         rtol_by_dtype=rtol_by_dtype,
         atol_by_dtype=atol_by_dtype,
@@ -220,7 +239,7 @@ def verify_workload(
 
     report.results[baseline_name] = expected
     for name, variant in selected:
-        actual = resolve_entrypoint(variant.entrypoint)()
+        actual = expected if name == baseline_name else resolve_entrypoint(variant.entrypoint)()
         report.results[name] = actual
         if not oracle(actual):
             report.errors.append(f"variant {name!r} output {actual!r} != baseline {expected!r}")
@@ -263,6 +282,7 @@ def _timing_config(
     protocol = manifest.protocol
     return TimingConfig(
         warmup_policy=protocol.warmup_policy,
+        warmup_samples=protocol.warmup_samples,
         minimum_samples=options.min_samples or protocol.minimum_samples,
         max_warmup=options.max_warmup or 100,
         randomize_order=protocol.configuration_order == "randomized",
@@ -293,12 +313,13 @@ def run_workload(
         baseline_name, baseline_variant = selected[0]
 
         if not options.no_oracle:
+            correctness = manifest.correctness_for(workload)
             oracle = build_oracle(
                 workload,
                 baseline_variant,
-                comparator=manifest.correctness.comparator if manifest.correctness else "exact",
-                rtol_by_dtype=manifest.correctness.rtol_by_dtype if manifest.correctness else None,
-                atol_by_dtype=manifest.correctness.atol_by_dtype if manifest.correctness else None,
+                comparator=correctness.comparator or "exact",
+                rtol_by_dtype=correctness.rtol_by_dtype,
+                atol_by_dtype=correctness.atol_by_dtype,
             )
         else:
             warnings.warn(

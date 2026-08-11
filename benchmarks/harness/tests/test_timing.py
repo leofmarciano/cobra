@@ -123,6 +123,29 @@ class TestWarmupStability:
         with pytest.raises(WarmupFailure):
             engine.run_warm(workload, oracle=lambda r: r == 42)
 
+    def test_fixed_warmup_does_not_require_stability(self) -> None:
+        """Fixed warmup is appropriate for tiny workloads with noisy clocks."""
+        clock_values: list[float] = []
+        t = 0.0
+        for i in range(30):
+            clock_values.append(t)
+            t += 0.1 if i % 2 == 0 else 10.0
+            clock_values.append(t)
+
+        engine = TimingEngine(
+            config=TimingConfig(
+                warmup_policy="fixed",
+                warmup_samples=3,
+                minimum_samples=2,
+                max_warmup=3,
+            ),
+            clock=FakeClock(clock_values),
+        )
+
+        results = engine.run_warm(lambda: 42, oracle=lambda r: r == 42)
+
+        assert len(results) == 2
+
 
 # ---------------------------------------------------------------------------
 # Correctness gating

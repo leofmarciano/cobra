@@ -34,15 +34,11 @@ correctness:
     float32: 1.0e-4
     float16: 1.0e-2
     bfloat16: 1.0e-2
-    # Python float values from workloads mixing float32 models; torch.compile
-    # may reorder float32 ops introducing up to ~1e-3 absolute differences.
-    float: 1.0e-3
   atol_by_dtype:
     float64: 1.0e-8
     float32: 1.0e-6
     float16: 1.0e-3
     bfloat16: 1.0e-3
-    float: 1.0e-3
 
 workloads:
   - name: parquet_feature_inference
@@ -66,6 +62,12 @@ workloads:
 
   - name: cv_preprocess_inference_postprocess
     input_fingerprint: cv-preprocess-inference-postprocess-v0
+    correctness:
+      comparator: approx
+      rtol_by_dtype:
+        float: 1.0e-3
+      atol_by_dtype:
+        float: 1.0e-3
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b0"
