@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 executor blocked; STATE/ROADMAP/git contradiction requires recovery before T0
+**Last updated:** 2026-08-11 — S02 unblocked; recovery done, branch recreated, resuming T0
 
 ## Now
 
@@ -11,22 +11,14 @@
 |---|---|---|
 || Milestone | M0 — Thesis validation |
 || Active sprint | S02 — Baseline workloads & B0/B1 report (`orchestration/sprints/S02-baseline-workloads.md`) |
-|| Sprint status | `blocked` |
-|| Current task | T0 — Record the GPU host (cannot start until recovery) |
-|| Branch | `sprint/S02-baseline-workloads` (declared), but working tree is on `main` |
-|| Next action | Run recovery prompt `orchestration/prompts/P2-recovery.md` to reconcile STATE/ROADMAP/git before resuming T0 |
+|| Sprint status | `in_progress` |
+|| Current task | T0 — Record the GPU host |
+|| Branch | `sprint/S02-baseline-workloads` |
+|| Next action | Run P0 (Executor) to complete T0 and continue S02 |
 
 ## Blockers
 
-- `STATE.md`/`ROADMAP.md`/`git` contradiction: `STATE.md` lists S02 as
-  `in_progress` and branch as `sprint/S02-baseline-workloads`, but the working
-  tree is on `main` and `git log` shows the S02 branch was already merged via
-  PR #32 (`995e564`). The `ROADMAP.md` ledger lists S02 as `not_started`. Per
-  `AGENTS.md` and `P0-execute.md`, this requires `P2-recovery.md` before any T0
-  work. Details in the S02 Session log.
-- `./scripts/check.sh` also fails on `knip` (pre-existing unused devDependencies
-  and configuration hints), unrelated to this session's markdown edits. Out of
-  scope for S02-T0; likely needs a repo-wide dependency/config cleanup pass.
+- (none)
 
 ## Human-input queue
 
@@ -62,10 +54,11 @@ Items an executor needs from the owner; answer by editing this list.
 ## Notes for the next session
 
 - S01 is merged to `main` and done.
-- S02 is the active sprint (GPU required), but the loop state is inconsistent:
-  `git log` shows S02 branch was merged via PR #32 while the previous session
-  was blocked, yet `STATE.md` lists it `in_progress` and `ROADMAP.md` lists it
-  `not_started`. Run `orchestration/prompts/P2-recovery.md` before resuming T0.
+- S02 is the active sprint (GPU required). State contradiction resolved by
+  operator: branch `sprint/S02-baseline-workloads` recreated, ROADMAP/STATE
+  reconciled. Ready to execute T0.
+- GPU host: WSL2 + RTX 3080 (driver 591.86, compute cap 8.6, 10 GiB).
+  CUDA toolkit presence to be verified by T0.
 - The harness has zero Cobra-internal dependencies and measures arbitrary Python
   callables via manifest entrypoints.
 - The plan's §36 approval record is pending; the S05 gate collects the
