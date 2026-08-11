@@ -142,6 +142,22 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 - Current task: T2 (`model_ensemble`); T4 will add the `b1` variant and the
   remaining workloads to the suite.
 
+**2026-08-11 — S02 executor (P0), T2+T3 complete**
+- Booted on `sprint/S02-baseline-workloads`, clean tree, STATE consistent.
+- T2: Implemented `model_ensemble` b0 — one batch sent to two independent
+  torch models (3-layer MLP + 2-layer TransformerEncoder), weighted
+  aggregation (0.6/0.4). Tests prove branch independence (no shared mutable
+  state). `cobra-bench verify` passes.
+- T3: Implemented `cv_preprocess_inference_postprocess` b0 — synthetic
+  256x256 images, CPU preprocessing (bilinear resize to 224x224, ImageNet
+  normalize), resnet18 inference (torchvision==0.28.0, DEFAULT weights),
+  postprocessing (softmax→top-1→threshold). Tests prove CPU-boundedness of
+  preprocessing. `cobra-bench verify` passes.
+- Added `torchvision==0.28.0` dependency (BSD, published 2026-07-08).
+- All 3 workloads pass `cobra-bench verify`. `./scripts/check.sh` passes
+  (123 tests, 0 failures).
+- Next: T4 (B0/B1 variants — add `torch.compile` + `cudf.pandas`).
+
 **2026-08-11 — S02 executor (P0), T0 complete**
 - Booted on `sprint/S02-baseline-workloads` (recreated by a prior recovery session), clean tree, ROADMAP/STATE consistent (`in_progress`). No contradiction — proceeded with T0.
 - Ran `uv run cobra-bench doctor --strict --output artifacts/environment/primary-host.json`: exit code 0 (passes). Host: WSL2 Ubuntu 24.04.1, Intel i9-10900F, 15.62 GiB RAM, NVIDIA RTX 3080 (driver 591.86, compute cap 8.6, 320W cap, persistence on). Committed the report.
