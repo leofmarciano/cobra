@@ -158,6 +158,28 @@ b1 numbers produced here — do not regenerate datasets after this sprint
   (123 tests, 0 failures).
 - Next: T4 (B0/B1 variants — add `torch.compile` + `cudf.pandas`).
 
+**2026-08-11 — S02 executor (P0), T4 complete**
+- Booted on `sprint/S02-baseline-workloads`, clean tree, STATE consistent.
+- T4: Implemented B1 variants for all 3 workloads:
+  - `parquet_feature_inference` b1: torch.compile(mode=default) on MLP +
+    cudf.pandas install() if available (graceful fallback).
+  - `model_ensemble` b1: torch.compile(mode=default) on both MLP and
+    TransformerEncoder.
+  - `cv_preprocess_inference_postprocess` b1: torch.compile(mode=default) on
+    resnet18; preprocessing stays CPU-bound.
+- Added `_compile_env.py` helper — ensures pip-wheel nvcc is on PATH for
+  Inductor backend (system nvcc absent; `nvidia-cuda-nvcc==13.0.88` provides
+  the binary under `site-packages/nvidia/cu13/bin/nvcc`).
+- Added `nvidia-cuda-nvcc==13.0.88` as a real dependency in
+  `benchmarks/pipelines/pyproject.toml` (BSD-like NVIDIA license, published
+  2025-08-20, >7 days old).
+- Extended harness `_float_key` to support a `"float"` key in tolerance dicts
+  (allows suite-level override for Python float values). Added `float: 1e-3`
+  rtol/atol in `phase0.yaml` to accommodate torch.compile float32 reordering.
+- All 6 workload×variant combos pass `cobra-bench verify`.
+- `./scripts/check.sh` passes (123 tests, 0 failures).
+- T4 checked off. Next: T5 (baseline measurement + profiler evidence).
+
 **2026-08-11 — S02 executor (P0), T0 complete**
 - Booted on `sprint/S02-baseline-workloads` (recreated by a prior recovery session), clean tree, ROADMAP/STATE consistent (`in_progress`). No contradiction — proceeded with T0.
 - Ran `uv run cobra-bench doctor --strict --output artifacts/environment/primary-host.json`: exit code 0 (passes). Host: WSL2 Ubuntu 24.04.1, Intel i9-10900F, 15.62 GiB RAM, NVIDIA RTX 3080 (driver 591.86, compute cap 8.6, 320W cap, persistence on). Committed the report.

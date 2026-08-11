@@ -40,7 +40,13 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## CUDA / GPU host
 
-- (none yet)
+- [2026-08-11][S02] `torch.compile` with the Inductor backend calls
+  `nvcc --version` during repro/debug graph serialization. If `nvcc` is not
+  on PATH (pip-wheel install puts it under `site-packages/nvidia/cu13/bin/`),
+  the compilation fails with a misleading `PermissionError: [Errno 13]
+  Permission denied: 'nvcc'`. Fix: ensure the pip-wheel nvcc dir is on PATH
+  before calling `torch.compile`. The `_compile_env.ensure_nvcc_in_path()`
+  helper in `cobra_pipelines` handles this.
 
 ## MLIR / compiler core
 
@@ -48,6 +54,13 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Benchmarking & measurement
 
+- [2026-08-11][S02] When comparing B0 vs B1 outputs, `torch.compile` may
+  reorder float32 ops and introduce up to ~1e-3 absolute differences in
+  softmax/confidence outputs.  The harness `_float_key` treats Python `float`
+  as `"float64"` by default (rtol=1e-5), which is too strict for float32
+  model outputs serialized as Python floats.  Fix: add a `"float"` key to
+  `rtol_by_dtype`/`atol_by_dtype` in the suite YAML (e.g., `float: 1e-3`)
+  so the harness applies float32-appropriate tolerance.
 - [2026-08-11][S02] The `approx` correctness comparator should inspect the
   concrete scalar type name (`float`, `float32`, `float64`) to pick a tolerance
   from `rtol_by_dtype` / `atol_by_dtype`, and it must handle `None`, `bool`,
