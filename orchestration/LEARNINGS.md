@@ -79,6 +79,12 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   a `list`, so the unwrap step must recurse into `list`/`tuple` arguments
   before calling the underlying NumPy function, or the wrapped array is
   still visible to dispatch and re-enters `__array_function__` forever.
+- [2026-08-11][S03] The torch recorder sees many internal `.to` calls on
+  parameters/allocations, so inferring "host/device transfer" from any
+  input/output device difference flags hundreds of false positives. Fix:
+  restrict transfer detection to explicit transfer op names (`.to`, `.cpu`,
+  `.cuda`, `from_numpy`, `numpy`) and require one side of the transfer to be
+  a GPU device.
 
 ## Benchmarking & measurement
 
