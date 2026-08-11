@@ -75,7 +75,7 @@ drafted semantic charter. No compiler code.
 - Accept: each ADR ≤1 page, status `accepted`, cites its plan sections.
 
 ### T5 — Semantic charter DRAFT (ADR-0005)
-- [ ] Do: `docs/decisions/ADR-0005-semantic-charter.md`, status `draft`
+- [x] Do: `docs/decisions/ADR-0005-semantic-charter.md`, status `draft`
   (frozen at S05 gate). Must state, in normative language: effect rules
   (unknown = full barrier), fallback contract (the five "never silently"
   items of §6.5), exception commit order (§8.3 policy 1-6), RNG modes
