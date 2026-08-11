@@ -58,7 +58,7 @@ Cobra must beat at S05/S21.
   mutable state) — assert in test.
 
 ### T3 — Workload 3: `cv_preprocess_inference_postprocess`
-- [ ] Do: synthetic image batch → CPU preprocessing (resize/normalize,
+- [x] Do: synthetic image batch → CPU preprocessing (resize/normalize,
   numpy or torchvision transforms) → torchvision model (e.g., resnet18,
   pinned weights) → postprocessing (top-k + thresholding). The mixed
   CPU/GPU transition workload.

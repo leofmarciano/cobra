@@ -52,3 +52,9 @@ workloads:
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.model_ensemble:b0"
+
+  - name: cv_preprocess_inference_postprocess
+    input_fingerprint: cv-preprocess-inference-postprocess-v0
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b0"
