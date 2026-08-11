@@ -30,6 +30,18 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Loop & process
 
+- [2026-08-11][S00 recovery] RECURRED (2nd time same day): a P0 session
+  reopened for a narrow, single-task fix (T1: repair `LICENSE`) instead
+  produced unrelated, uncommitted CI/npm tooling (GH workflows, biome/knip,
+  pre-commit, package.json) and never touched `LICENSE`. Hypothesis: when
+  "Current task" in STATE.md is a small legal-text fix, the executor prompt
+  may default to broader "repo hygiene" scope instead. Fix/rule: P0 sessions
+  MUST re-read the sprint file's exact task bullet before acting, touch only
+  files needed for that bullet's Accept criteria, and commit immediately
+  after — never leave a session boundary with uncommitted changes, no matter
+  how small the remaining diff feels. Flagged for Replanner: consider making
+  P0-execute.md require quoting the current task's Do/Accept text back
+  before any file writes.
 - [2026-08-11][S00 recovery] A session that does not commit its work leaves the
   next session in an unrecoverable state. In this case an unfinished session had
   uncommitted CI/npm tooling WIP on top of a44e1e0. S00 validation still passed

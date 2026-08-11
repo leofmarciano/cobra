@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S00 validation reopened: LICENSE is not verbatim canonical (T1 defect)
+**Last updated:** 2026-08-11 — S00 recovery: reset dirty tree (2nd occurrence) to last verified commit; T1 (LICENSE) still not started
 
 ## Now
 
@@ -47,12 +47,21 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-11 | S00 recovery #2 (P2) | Found dirty tree again on `sprint/S00-project-bootstrap` at 6d53308 — same anti-pattern as the prior same-day recovery (out-of-scope CI/npm tooling WIP), T1 (LICENSE) still untouched. Verified 6d53308 passes all S00 validation commands. Rescued WIP to `rescue/S00-2026-08-11-0037`, reset sprint branch to 6d53308. Unchecked T1 box (defect confirmed, not just unverified). Sprint remains `in_progress`/T1; next is P0 — actually fix LICENSE. |
 | 2026-08-11 | S00 validation (P1) | All automated validation commands pass. Acceptance audit found T1 defect: `LICENSE` is not verbatim canonical (diff vs https://llvm.org/LICENSE.txt). Sprint reopened to fix T1; next is P0. |
-| 2026-08-11 | S00 recovery (P2) | Found dirty working tree after a44e1e0 with uncommitted out-of-scope CI/tooling WIP. S00 validation still passes on a44e1e0 (`uv sync`, `./scripts/check.sh`, 80 READMEs, import smoke). Rescued WIP to `rescue/S00-2026-08-11`, reset `sprint/S00-project-bootstrap` to a44e1e0. Sprint remains `needs_validation`; next is P1. |
-| 2026-08-11 | Harness review + rewrite (Devin) | Reviewed loop vs plan; rewrote worker layer to `devin -p` subprocesses; fixed gate detection, blocked-state policy, no-ack mailbox bug, uncommitted STATE advancement. |
+| 2026-08-11 | S00 recovery #1 (P2) | Found dirty working tree after a44e1e0 with uncommitted out-of-scope CI/tooling WIP. S00 validation still passes on a44e1e0 (`uv sync`, `./scripts/check.sh`, 80 READMEs, import smoke). Rescued WIP to `rescue/S00-2026-08-11`, reset `sprint/S00-project-bootstrap` to a44e1e0. Sprint remains `needs_validation`; next is P1. |
 
 ## Notes for the next session
 
+- **Two P0 sessions in a row have skipped T1 and instead produced unrelated,
+  uncommitted CI/npm tooling (workflows, biome/knip, pre-commit, package.json)
+  — both were rescued (`rescue/S00-2026-08-11`, `rescue/S00-2026-08-11-0037`)
+  and reset without progress. The active task is EXACTLY T1: replace
+  `LICENSE` with the verbatim text from https://llvm.org/LICENSE.txt (or the
+  approved project-specific equivalent — only a project-name header
+  substitution is allowed). Do nothing else until `diff` against the
+  canonical text is clean, `./scripts/check.sh` passes, and the sprint file
+  Session log + STATE.md are updated and committed.**
 - S00 was reopened by Validator: T1 LICENSE is not verbatim canonical. Fix by
   replacing `LICENSE` with the full text from https://llvm.org/LICENSE.txt (or
   the approved project-specific equivalent), then re-run `./scripts/check.sh`

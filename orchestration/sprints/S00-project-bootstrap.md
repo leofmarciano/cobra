@@ -32,7 +32,7 @@ drafted semantic charter. No compiler code.
 ## Tasks
 
 ### T1 — Governance documents
-- [x] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
+- [ ] Do: Add `LICENSE` (Apache-2.0 text + LLVM Exceptions addendum —
   fetch canonical text from llvm.org/LICENSE.txt), `NOTICE`,
   `CONTRIBUTING.md` (DCO 1.1 quoted in full + sign-off requirement +
   pointer to orchestration loop), `CODE_OF_CONDUCT.md` (Contributor
@@ -154,3 +154,20 @@ green). Acceptance audit found one defect:
 
 Reopening to fix T1. Next: run P0-execute.md to repair LICENSE, then re-run
 P1-validate.md. -->
+<!-- [2026-08-11][Recovery] RECOVERY: dirty working tree found on
+`sprint/S00-project-bootstrap` at HEAD 6d53308, a second occurrence of the
+same anti-pattern as the earlier same-day recovery (see LEARNINGS.md): an
+executor session produced out-of-scope CI/npm tooling WIP (split GH
+workflows, CODEOWNERS, dependabot, PR template, markdownlint/yamllint
+configs, pre-commit, biome/knip, package.json + lockfile, scripts/ci/*,
+expanded scripts/check.sh, plus small lint cleanups to
+scripts/cobra_orca_loop.py) and left it uncommitted, without attempting the
+actual assigned task (T1: repair LICENSE). LICENSE was unchanged — still the
+non-canonical text flagged by the Validator. Verified 6d53308 still passes
+all S00 validation commands from a clean tree (`uv sync`, `./scripts/check.sh`,
+80 READMEs tracked, import smoke). Rescued the WIP verbatim to
+`rescue/S00-2026-08-11-0037` and reset the sprint branch to 6d53308 (no
+`git reset --hard` used — reset was via checkout after committing the WIP on
+the rescue branch, so no work was discarded). Sprint status remains
+`in_progress`, current task remains T1. Next: run P0-execute.md and actually
+perform the LICENSE fix before touching anything else. -->
