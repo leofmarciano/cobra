@@ -66,7 +66,7 @@ drafted semantic charter. No compiler code.
   `import cobra_compiler as cobra` works.
 
 ### T4 — ADR infrastructure + founding ADRs
-- [ ] Do: `docs/decisions/TEMPLATE.md` (context/decision/status/
+- [x] Do: `docs/decisions/TEMPLATE.md` (context/decision/status/
   consequences), then: ADR-0001 scope & non-goals (distill §2.5),
   ADR-0002 architecture: CPython-hosted capture + MLIR, not a fork
   (distill §4.2/§4.3 matrix), ADR-0003 license choice (§26.1-26.3),
