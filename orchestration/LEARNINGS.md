@@ -37,6 +37,14 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Loop & process
 
+- [2026-08-11][S01 recovery] A session that completes a task and begins the next
+  one can leave the working tree staged but uncommitted, and `STATE.md` one task
+  behind. Recovery found T2 committed but no STATE handoff and T3 fully staged
+  but uncommitted. Combined with an unrelated, half-finished
+  `scripts/cobra_orca_loop.py` edit, this blocked `./scripts/check.sh`. Fix/rule:
+  a handoff must end with a clean `git status` (all changes committed), and
+  non-sprint/tooling changes must be on their own branch, never mixed with a
+  sprint task.
 - [2026-08-11][S00 validation] Legal or canonical text copied from a URL (e.g.,
   `LICENSE`) must be verified with `diff -u` against the fetched source, not just
   by inspection. A `LICENSE` passed all lint/tests but was missing ~50 lines of

@@ -149,3 +149,20 @@ details into STATE.md Environment.
   40-char all-zero commit hash) as `int`; the example manifest now quotes
   `commit`/`workload_commit` explicitly — worth a LEARNINGS note for
   anyone hand-writing suite YAML with hash-like fields.
+- [2026-08-11][S01 recovery (P2)] RECOVERY:
+  - Found `sprint/S01-benchmark-harness` with T1 (b32b7e3) and T2 (e074718)
+    already committed, but T2 handoff was not recorded. T3 was fully staged
+    but not committed.
+  - Also in the working tree: an unrelated, half-finished
+    `scripts/cobra_orca_loop.py` change (advisory `fcntl` lock) that failed
+    `ruff B904`, plus an untracked `scripts/.cobra_loop.lock`.
+  - T3 verified: `uv run pytest benchmarks/harness -q` (56 passed),
+    `uv run mypy benchmarks/harness/src/cobra_bench --strict` (clean),
+    `ruff check` / `ruff format --check` on `benchmarks/harness` (clean).
+    Committed to the sprint branch as
+    `S01: recovered work-in-progress (T3 timing protocol engine)`.
+  - Rescued the broken loop-harness WIP to `rescue/S01-2026-08-11`; reverted
+    `scripts/cobra_orca_loop.py` on the sprint branch and removed
+    `scripts/.cobra_loop.lock`. Working tree is now clean.
+  - STATE.md corrected to current task T4. Next: T4 — result schema +
+    statistics.
