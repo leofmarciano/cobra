@@ -32,7 +32,7 @@ Cobra must beat at S05/S21.
 ## Tasks
 
 ### T0 — Record the GPU host (FIRST, blocking)
-- [ ] Do: run `cobra-bench doctor --strict` on the Linux GPU host; commit
+- [x] Do: run `cobra-bench doctor --strict` on the Linux GPU host; commit
   `artifacts/environment/primary-host.json`; fill STATE.md Environment
   table (OS/kernel/CPU/RAM/GPU/driver/CUDA). Pin framework versions
   chosen here into `support-matrix.yaml` (torch, pandas, cudf, numpy,
@@ -124,3 +124,12 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 - `orchestration/ROADMAP.md` ledger lists S02 status as `not_started`, while `orchestration/STATE.md` lists it as `in_progress`.
 - Per `AGENTS.md` and `P0-execute.md`, a `git`/STATE contradiction triggers `P2-recovery.md`. Executor stopped before doing sprint work.
 - Recorded blocker in `orchestration/STATE.md`; next prompt is `P2-recovery.md`.
+
+**2026-08-11 — S02 executor (P0), T0 complete**
+- Booted on `sprint/S02-baseline-workloads` (recreated by a prior recovery session), clean tree, ROADMAP/STATE consistent (`in_progress`). No contradiction — proceeded with T0.
+- Ran `uv run cobra-bench doctor --strict --output artifacts/environment/primary-host.json`: exit code 0 (passes). Host: WSL2 Ubuntu 24.04.1, Intel i9-10900F, 15.62 GiB RAM, NVIDIA RTX 3080 (driver 591.86, compute cap 8.6, 320W cap, persistence on). Committed the report.
+- Researched current stable framework releases (web search, 2026-08-11) and checked pairwise compatibility with `uv pip install --dry-run` in a scratch `/tmp` venv (nothing installed in the repo env). Finding: `cudf-cu13==26.6.0` (the RAPIDS wheel matching this driver's CUDA 13.1 ceiling) constrains `numpy<2.5,>=1.26`, `pandas<2.4.0,>=2.0`, `pyarrow<24,>=19.0.0` — so the newest upstream releases (numpy 2.5.2, pandas 3.0.5, pyarrow 25.0.1) are NOT usable with cudf.pandas acceleration for B1. Selected the newest releases satisfying cudf's ceilings, all published ≥7 days ago: `torch==2.13.0`, `numpy==2.4.6`, `pandas==2.3.3`, `pyarrow==23.0.1`, `cudf-cu13==26.6.0`. Verified the full 5-package set co-resolves together (dry-run only).
+- Also confirmed system-wide `nvcc` is absent on the host, but this is not a blocker: the pip wheel set pulls in `nvidia-cuda-nvcc-cu13`/`nvidia-cuda-runtime-cu13`/etc., which is sufficient for pip-wheel-based workloads (no native CUDA compilation is needed in S02).
+- Recorded the pins and rationale in `support-matrix.yaml` (ubuntu-24.04/x86_64 platform row) and mirrored the summary into `STATE.md` Environment table.
+- Note for Validator/next executor: these are pins only — torch/numpy/pandas/pyarrow/cudf are not yet added as real project dependencies. T1-T4 must add them (`uv add` under the harness or workload package) using exactly these versions, and record the dependency add in this log + `DECISIONS.md` per PROTOCOL §6/§7.
+- T0 checked off. Next task: T1 (`parquet_feature_inference` workload).

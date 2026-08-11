@@ -17,7 +17,18 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Python / frameworks (torch, pandas, cuDF, Arrow)
 
-- (none yet)
+- [2026-08-11][S02] `cudf-cu13==26.6.0` (RAPIDS wheel for CUDA 13 drivers)
+  constrains `numpy<2.5,>=1.26`, `pandas<2.4.0,>=2.0`, `pyarrow<24,>=19.0.0`.
+  The current upstream-latest releases (numpy 2.5.x, pandas 3.0.x, pyarrow
+  25.x) are NOT installable alongside cudf.pandas. When pinning "latest
+  stable" framework versions for a B1 baseline that uses `cudf.pandas`,
+  resolve the whole set together (e.g. `uv pip install --dry-run`) rather
+  than picking each package's latest release independently.
+- [2026-08-11][S02] No system-wide `nvcc`/CUDA toolkit is required to run
+  torch/cudf GPU workloads via pip wheels — `nvidia-cuda-nvcc-cu13`,
+  `nvidia-cuda-runtime-cu13`, etc. ship as transitive pip deps of the
+  cu13-tagged wheels and are sufficient for pip-wheel-based (non-native-build)
+  workloads.
 
 ## CUDA / GPU host
 
