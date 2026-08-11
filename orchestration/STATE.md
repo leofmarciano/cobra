@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-10 — GitHub issues created for all sprints (Devin)
+**Last updated:** 2026-08-11 — harness review + rewrite to Devin-only workers (Devin)
 
 ## Now
 
@@ -24,6 +24,9 @@
 
 Items an executor needs from the owner; answer by editing this list.
 
+- [ ] **BLOCKS AUTONOMOUS LOOP:** run `devin auth login` once in a terminal —
+      the standalone Devin CLI is not authenticated (`devin auth status` says
+      "Not logged in"), so headless workers (`devin -p`) cannot start.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
 - [ ] Linux + NVIDIA GPU host details (hostname/access, GPU model, driver,
       CUDA toolkit) — needed no later than S02. Owner confirmed hardware
@@ -38,14 +41,15 @@ Items an executor needs from the owner; answer by editing this list.
 | GPU availability | Confirmed available by owner (2026-08-10) |
 | Python toolchain | `uv` (to be pinned in S00) |
 | Remote | github.com/leofmarciano/cobra (do NOT push without human ask) |
+| Worker agent | Devin CLI headless (`devin -p`), spawned by `scripts/cobra_orca_loop.py`; default `--permission-mode dangerous` (owner-approved for unattended runs, D-004) |
 
 ## Last 3 sessions
 
 | Date | Session | Result |
 |---|---|---|
+| 2026-08-11 | Harness review + rewrite (Devin) | Reviewed loop vs plan; rewrote worker layer to `devin -p` subprocesses (Orca worker-start is claude/codex-only); fixed gate detection, blocked-state policy, no-ack mailbox bug, uncommitted STATE advancement. Found blocker: `devin auth login` needed. |
 | 2026-08-10 | Sprint issues + labels (Devin) | Created 30 GitHub issues (#1-#30) for S00-S29, labels `sprint`/`milestone-M*`/`gate`, linked from sprint files and ROADMAP.md. |
 | 2026-08-10 | Autonomous loop harness (Devin) | Added scripts/cobra_orca_loop.py + wrapper/precheck; branch sprint/S00-project-bootstrap. Sprint S00 still not_started. |
-| 2026-08-10 | Orchestration setup (Devin) | Created loop docs, 30 sprint files, 5 prompts. No product code written. |
 
 ## Notes for the next session
 

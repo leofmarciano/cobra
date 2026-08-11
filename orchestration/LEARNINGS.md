@@ -30,6 +30,16 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 
 ## Loop & process
 
+- [2026-08-11][review] Orca `orchestration worker-start --agent` accepts only
+  claude/codex — Devin workers must be spawned as `devin -p` subprocesses.
+- [2026-08-11][review] The standalone Devin CLI has its own auth
+  (`~/.local/share/devin/credentials.toml`), separate from the Devin app.
+  Headless `devin -p` fails with "Not logged in" until `devin auth login`.
+- [2026-08-11][review] Orca `orchestration check --wait` REPLAYS the same
+  unacknowledged batch until `--ack <delivery_id>` — polling without ack
+  reads stale worker_done messages forever. (Moot now, but recorded.)
+- [2026-08-11][review] macOS has no `timeout` binary; use Python subprocess
+  timeouts or `gtimeout` (coreutils).
 - [2026-08-10][setup] On this workstation, agent tooling refuses to write
   repo files whose NAME contains `trace-` (an editor/agent ignore pattern,
   not git — `git check-ignore` is clean). `tracer/` is fine. If a write is

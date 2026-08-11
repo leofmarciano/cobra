@@ -39,6 +39,24 @@ Format:
 - Consequences: Gates may still invalidate later sprints; a `narrow`
   decision requires a Replanner pass over remaining sprint files.
 
+## D-004 — Devin-only workers; harness spawns headless Devin CLI
+
+- Date / by: 2026-08-11 / owner ("NAO USAREMOS CLAUDE! SOMENTE DEVIN") + review session
+- Context: The original harness dispatched workers via `orca orchestration
+  worker-start --agent claude`, but Orca's worker layer supports only
+  claude/codex TUI agents and no managed Claude account exists. Owner
+  mandates Devin for all agents.
+- Decision: Workers are `devin --print` subprocesses spawned directly by
+  `scripts/cobra_orca_loop.py` (blocking, one at a time — WIP=1 by
+  construction). The Orca automation (provider devin) remains the hourly
+  scheduler + supervisor that reports LOOP_RESULT lines to the operator.
+  Default worker permission mode is `dangerous` (unattended runs need
+  git/build/test without approval prompts); override via
+  `--permission-mode` in the automation prompt if desired.
+- Consequences: Requires one-time `devin auth login` on the host. Orca
+  run/task/mailbox provenance is not used; progress classification is
+  file-based (STATE.md + git), which the loop was designed around.
+
 ## D-003 — Pending formal approvals (plan §36)
 
 - Date / by: 2026-08-10 / setup session

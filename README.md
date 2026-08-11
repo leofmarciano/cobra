@@ -69,7 +69,7 @@ orca automations create \
   --name "Cobra Autonomous Sprint Loop" \
   --trigger "0 * * * *" \
   --prompt "Run the Cobra autonomous sprint-loop harness for one cycle. Do not edit source files yourself. Execute: /Users/marciano/Projects/Cobra/scripts/cobra_orca_loop.sh --once --wait-minutes 50 --max-minutes 55. Read its output, report any blocker, gate, or question to the operator, and stop if it reports a human decision is required." \
-  --provider claude \
+  --provider devin \
   --workspace path:/Users/marciano/Projects/Cobra \
   --precheck /Users/marciano/Projects/Cobra/scripts/loop_precheck.sh \
   --enabled
