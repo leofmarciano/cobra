@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 booted; blocked on Linux + NVIDIA GPU host details
+**Last updated:** 2026-08-11 — S02 unblocked; WSL + NVIDIA GPU host available, CUDA toolkit status pending doctor
 
 ## Now
 
@@ -11,17 +11,14 @@
 |---|---|---|
 || Milestone | M0 — Thesis validation |
 || Active sprint | S02 — Baseline workloads & B0/B1 report (`orchestration/sprints/S02-baseline-workloads.md`) |
-|| Sprint status | `blocked` |
+|| Sprint status | `in_progress` |
 || Current task | T0 — Record the GPU host |
 || Branch | `sprint/S02-baseline-workloads` |
-|| Next action | Provide Linux + NVIDIA GPU host details, then rerun `orchestration/prompts/P0-execute.md` |
+|| Next action | Run `cobra-bench doctor --strict`, record `artifacts/environment/primary-host.json`, and fill Environment table |
 
 ## Blockers
 
-- S02-T0 cannot run on this macOS orchestration host. Need Linux + NVIDIA GPU
-  host access (hostname/SSH, GPU model, driver version, CUDA toolkit) to run
-  `cobra-bench doctor --strict`, record `artifacts/environment/primary-host.json`,
-  and fill the Environment table below.
+(none)
 
 ## Human-input queue
 
@@ -31,17 +28,17 @@ Items an executor needs from the owner; answer by editing this list.
       Orca automation environment authenticates fine; the "Not logged in"
       was an artifact of a sandboxed review shell only. Not a blocker.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
-- [ ] Linux + NVIDIA GPU host details (hostname/SSH access, GPU model, driver
-      version, CUDA toolkit) — blocking S02-T0. Owner confirmed hardware exists
-      (2026-08-10); access details still needed.
+- [x] ~~Linux + NVIDIA GPU host details~~ — resolved 2026-08-11: this WSL
+      session has direct access to an NVIDIA GeForce RTX 3080 (driver 591.86,
+      compute cap 8.6, 10 GiB). CUDA toolkit presence to be verified by T0.
 
 ## Environment
 
 || Item | Value |
 |---|---|---|
-|| Orchestration host | macOS (owner laptop) — docs/git only, no native builds |
-|| Dev/bench host | **TBD** — first GPU sprint must record: OS, kernel, CPU, RAM, GPU, driver, CUDA toolkit. Currently blocked waiting for owner-provided access details. |
-|| GPU availability | Confirmed available by owner (2026-08-10); access details pending |
+|| Orchestration host | WSL2 Ubuntu 24.04.1 LTS (this session) — native builds allowed; GPU available |
+|| Dev/bench host | WSL2 Ubuntu 24.04.1 LTS / kernel 6.6.87.2-microsoft-standard-WSL2 / Intel Core i9-10900F (12 vCPU) / 15 GiB RAM |
+|| GPU availability | NVIDIA GeForce RTX 3080, 10 GiB, driver 591.86, compute cap 8.6 (CUDA toolkit pending `nvcc` verification) |
 || Python toolchain | `uv` (to be pinned in S00) |
 || Remote | github.com/leofmarciano/cobra (do NOT push without human ask) |
 || Worker agent | Devin CLI headless (`devin -p`), spawned by `scripts/cobra_orca_loop.py`; default `--permission-mode dangerous` (owner-approved for unattended runs, D-004) |
