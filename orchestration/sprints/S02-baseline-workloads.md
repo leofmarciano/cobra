@@ -50,7 +50,7 @@ Cobra must beat at S05/S21.
   (hash-stable across runs).
 
 ### T2 — Workload 2: `model_ensemble`
-- [ ] Do: one input batch → two independent torch models (different
+- [x] Do: one input batch → two independent torch models (different
   architectures, e.g., MLP + small transformer encoder — record choices)
   → weighted aggregation. This is the parallel-branch opportunity
   workload (§2.4).

@@ -46,3 +46,9 @@ workloads:
     variants:
       - name: b0
         entrypoint: "cobra_pipelines.parquet_feature_inference:b0"
+
+  - name: model_ensemble
+    input_fingerprint: model-ensemble-v0
+    variants:
+      - name: b0
+        entrypoint: "cobra_pipelines.model_ensemble:b0"
