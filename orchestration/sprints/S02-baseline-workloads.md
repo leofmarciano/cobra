@@ -116,3 +116,11 @@ b1 numbers produced here — do not regenerate datasets after this sprint
 - T0 requires running `cobra-bench doctor --strict` on the Linux + NVIDIA GPU host and recording `artifacts/environment/primary-host.json`. This macOS orchestration host has no GPU; `cobra-bench doctor` strict mode fails when `nvidia-smi` is absent (§33.2).
 - **Blocker:** need owner-provided Linux + NVIDIA GPU host access (hostname/SSH, GPU model, driver version, CUDA toolkit). Recorded in `orchestration/STATE.md` Blockers and Human-input queue.
 - No code changes; next action is to rerun P0 once host details are supplied.
+
+**2026-08-11 — S02 executor (P0), boot + T0 blocked on loop state**
+- Booted and read context budget. GPU host is now available (WSL2 + RTX 3080), but the repo state contradicts itself.
+- `git status` shows working tree clean but currently on `main`, not the sprint branch `sprint/S02-baseline-workloads` declared in `STATE.md`.
+- `git log --oneline -10` shows commit `995e564 Merge pull request #32 from leofmarciano/sprint/S02-baseline-workloads`, i.e. the S02 branch was already merged into `main` while the previous session was blocked.
+- `orchestration/ROADMAP.md` ledger lists S02 status as `not_started`, while `orchestration/STATE.md` lists it as `in_progress`.
+- Per `AGENTS.md` and `P0-execute.md`, a `git`/STATE contradiction triggers `P2-recovery.md`. Executor stopped before doing sprint work.
+- Recorded blocker in `orchestration/STATE.md`; next prompt is `P2-recovery.md`.

@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 unblocked; WSL + NVIDIA GPU host available, CUDA toolkit status pending doctor
+**Last updated:** 2026-08-11 — S02 executor blocked; STATE/ROADMAP/git contradiction requires recovery before T0
 
 ## Now
 
@@ -11,14 +11,22 @@
 |---|---|---|
 || Milestone | M0 — Thesis validation |
 || Active sprint | S02 — Baseline workloads & B0/B1 report (`orchestration/sprints/S02-baseline-workloads.md`) |
-|| Sprint status | `in_progress` |
-|| Current task | T0 — Record the GPU host |
-|| Branch | `sprint/S02-baseline-workloads` |
-|| Next action | Run `cobra-bench doctor --strict`, record `artifacts/environment/primary-host.json`, and fill Environment table |
+|| Sprint status | `blocked` |
+|| Current task | T0 — Record the GPU host (cannot start until recovery) |
+|| Branch | `sprint/S02-baseline-workloads` (declared), but working tree is on `main` |
+|| Next action | Run recovery prompt `orchestration/prompts/P2-recovery.md` to reconcile STATE/ROADMAP/git before resuming T0 |
 
 ## Blockers
 
-(none)
+- `STATE.md`/`ROADMAP.md`/`git` contradiction: `STATE.md` lists S02 as
+  `in_progress` and branch as `sprint/S02-baseline-workloads`, but the working
+  tree is on `main` and `git log` shows the S02 branch was already merged via
+  PR #32 (`995e564`). The `ROADMAP.md` ledger lists S02 as `not_started`. Per
+  `AGENTS.md` and `P0-execute.md`, this requires `P2-recovery.md` before any T0
+  work. Details in the S02 Session log.
+- `./scripts/check.sh` also fails on `knip` (pre-existing unused devDependencies
+  and configuration hints), unrelated to this session's markdown edits. Out of
+  scope for S02-T0; likely needs a repo-wide dependency/config cleanup pass.
 
 ## Human-input queue
 
@@ -47,16 +55,17 @@ Items an executor needs from the owner; answer by editing this list.
 
 || Date | Session | Result |
 |---|---|---|---|
-|| 2026-08-11 | S01 executor (P0), T5+T6 | Implemented full `cobra-bench` CLI (`doctor`, `verify`, `run`, `analyze`, `compare`), `cobra_bench.runner` (entrypoint resolution, oracle factory, warm timing, cold subprocess placeholder, sample recording), `cobra_bench.compare` (threshold check between `summary.json` files), and `cobra_bench.guardrails` (mixed-phase refusal, input-fingerprint consistency, <30 sample warning, `--no-oracle` opt-out with loud warning). Extended manifest/stats for input fingerprints and phase. 34 new TDD tests; `uv run pytest benchmarks/harness -q` (120 passed), `mypy --strict` clean, ruff clean, sprint validation commands green, `./scripts/check.sh` green. T5+T6 checked; sprint `needs_validation`; next is P1. |
+|| 2026-08-11 | S02 executor (P0), T0 blocked | Booted and read context budget. GPU host now available (WSL2 + RTX 3080), but repo state contradicts itself: working tree on `main` while `STATE.md` declares branch `sprint/S02-baseline-workloads`; git history shows S02 branch already merged via PR #32 (`995e564`); `ROADMAP.md` ledger lists S02 as `not_started` while `STATE.md` lists `in_progress`. Per `AGENTS.md`/`P0-execute.md`, stopping for `P2-recovery.md`. |
 || 2026-08-11 | S01 Validator (P1) | Validated and closed S01. Re-ran all sprint validation commands, ran `./scripts/check.sh`, and found/fixed two CI gaps so the harness tests and mypy run in CI. Merged `sprint/S01-benchmark-harness` into `main` (9d4ec3d). Closed GitHub issue #2. Updated ROADMAP/STATE/LEARNINGS. Next: S02 T0 — record the Linux + NVIDIA GPU host. |
 || 2026-08-11 | S02 executor (P0), T0 | Booted S02, created branch `sprint/S02-baseline-workloads` from `main`, read context budget (plan §20.2, §20.3-D, §29 Days 1-10, §2.4, §33.2-33.4). Cannot run `cobra-bench doctor --strict` on macOS (no GPU; strict mode requires GPU metadata per §33.2). Recorded blocker: need owner-provided Linux + NVIDIA GPU host access details. No code changes. |
 
 ## Notes for the next session
 
 - S01 is merged to `main` and done.
-- S02 is the active sprint (GPU required). T0 is the first task: run
-  `cobra-bench doctor --strict` on the Linux GPU host and fill the Environment
-  table. The owner has confirmed the host exists but details are still needed.
+- S02 is the active sprint (GPU required), but the loop state is inconsistent:
+  `git log` shows S02 branch was merged via PR #32 while the previous session
+  was blocked, yet `STATE.md` lists it `in_progress` and `ROADMAP.md` lists it
+  `not_started`. Run `orchestration/prompts/P2-recovery.md` before resuming T0.
 - The harness has zero Cobra-internal dependencies and measures arbitrary Python
   callables via manifest entrypoints.
 - The plan's §36 approval record is pending; the S05 gate collects the
