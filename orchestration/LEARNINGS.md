@@ -50,3 +50,10 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
 - [2026-08-10][setup] The technical plan is ~4,500 lines. Never read it in
   full; sprint files cite exact sections (§). Reading it whole wastes ~40k
   tokens of context.
+- [2026-08-11][S00] Background subagents can edit shared state files
+  (`STATE.md`, sprint file) and leave unrelated working-tree changes.
+  Re-verify `git status` after a subagent returns; revert or scope commits
+  before the Executor handoff.
+- [2026-08-11][S00] `uvx --from yamllint yamllint` warnings for missing
+  document start (`---`) and YAML 1.1 truthy keys (`on:`) are easy to fix;
+  quote truthy keys and add `---` to keep the workflow YAML clean.

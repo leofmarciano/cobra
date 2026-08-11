@@ -124,3 +124,11 @@ sprint file and from the ROADMAP ledger. -->
 skeleton with README.md in every directory, plus root .gitignore and
 .editorconfig. Verified 80 directory READMEs created; one pre-existing root
 README.md also present (81 total). STATE.md advanced to in_progress/T3. -->
+<!-- [2026-08-11][Executor] Completed S00 T1–T6 in one session. T1 governance
+ docs added with a flagged security-email placeholder. T2 full repository
+ skeleton created; T3 Python packaging (cobra-compiler, Python 3.13, uv.lock)
+ and passing import smoke test; T4 ADR template + ADR-0001..0004; T5 draft
+ semantic charter ADR-0005; T6 lint CI workflow and scripts/check.sh. Fixed
+ pre-existing lint issues in the loop harness so the local check passes.
+ Validation commands all green; sprint status set to needs_validation. Next:
+ run P1-validate.md in a fresh session. -->
