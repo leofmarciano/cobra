@@ -229,3 +229,13 @@ the JSON schema documented in the tracer README.
   retain producer lineage. `./scripts/check.sh --ci` passes with 196 tests and
   9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL and
   release/publish security gate findings remain owner-controlled.
+
+- [2026-08-11][executor PR #45 review follow-up 7] Added failing-first tests
+  and fixes for cuDF distribution discovery across CUDA/package variants and
+  generation-safe opaque handles. Non-weakrefable container identities are
+  omitted rather than reused after collection, while nested trackable values
+  remain recursive. Updated the tracer README and regenerated reports to
+  confirm the graph is unchanged; timing-only report churn was retained out
+  of the validated evidence set. `./scripts/check.sh --ci` passes with 199
+  tests and 9 GPU tests deselected. Next: commit/push and monitor CI/Devin;
+  CodeQL and release/publish gate findings remain owner-controlled.

@@ -45,8 +45,11 @@ args/kwargs summary, value-identity handles for inputs/outputs
 dataframe lifetime / ndarray base lifetime — so storage views share a handle
 while recycled objects do not alias). Events also carry generation-aware
 logical-value handles in metadata, keeping a read-only view's producer on the
-dependency path without treating that view as a storage mutation), per-value
-metadata (dtype, shape/schema, device, storage id —
+dependency path without treating that view as a storage mutation). Opaque
+weak-referenceable objects use the same lifetime generation guard; opaque
+containers without a weak-reference lifetime are omitted while their nested
+trackable values are still collected. Events also carry per-value metadata
+(dtype, shape/schema, device, storage id —
 `tracer.metadata.describe`), wall-clock timing (`time.perf_counter_ns`),
 thread id, and a best-effort call-site source location.
 

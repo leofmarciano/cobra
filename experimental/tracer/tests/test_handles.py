@@ -66,6 +66,22 @@ def test_generation_handle_changes_after_recycled_identity() -> None:
     assert second_handle != first_handle
 
 
+def test_weakrefable_opaque_handle_includes_a_generation() -> None:
+    class Opaque:
+        pass
+
+    value = Opaque()
+    handle = handle_for(value)
+
+    assert handle is not None
+    assert handle.startswith("opaque:")
+    assert handle.count(":") == 2
+
+
+def test_non_weakrefable_opaque_container_has_no_recycled_id_handle() -> None:
+    assert handle_for([object()]) is None
+
+
 def test_ndarray_handle_shared_with_view() -> None:
     arr = np.zeros(4)
     view = arr[:2]

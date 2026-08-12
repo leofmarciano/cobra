@@ -68,6 +68,21 @@ def _generation_handle(
     return f"{namespace}:{key}:{generation}"
 
 
+def _opaque_handle(value: Any) -> str | None:
+    """Return a generation-aware handle when ``value`` supports weakrefs.
+
+    Built-in mutable containers cannot be weak-referenced.  Returning no
+    identity for those values is safer than retaining them forever or reusing
+    a bare ``id()`` after collection; ``collect_handles`` still descends into
+    nested lists, tuples, and mappings to capture trackable values inside.
+    """
+    try:
+        weakref.ref(value)
+    except TypeError:
+        return None
+    return _generation_handle(value, "opaque")
+
+
 def tensor_storage_identity(value: Any) -> str | None:
     """Return a generation-aware identity for a tensor's live allocation.
 
@@ -115,9 +130,9 @@ def handle_for(value: Any) -> str | None:
             base = base.base
         return _generation_handle(base, "ndarray")
     if isinstance(value, list | tuple | dict | set) and not _is_scalar_container(value):
-        return f"opaque:{id(value)}"
+        return _opaque_handle(value)
     if hasattr(value, "__dict__") and not isinstance(value, str | bytes | int | float | bool):
-        return f"opaque:{id(value)}"
+        return _opaque_handle(value)
     return None
 
 

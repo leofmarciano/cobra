@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 6 in progress (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 7 in progress (executor session)
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | Push the Devin lineage/handle/correctness fixes; monitor CI and Devin approval |
+| Current task | Push the cuDF discovery and opaque-handle fixes; monitor CI and Devin approval |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Commit/push the tracer and harness fixes; monitor the new workflow run and review threads |
+| Next action | Commit/push this follow-up; monitor the new workflow run and review threads |
 
 ## Blockers
 
@@ -62,11 +62,9 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
-| 2026-08-11 | S03 executor (PR #45 review follow-up 2) | Added the persistent cuDF worker/cache, pandas boundaries, generation-aware handles, tolerance propagation, memoized reachability, and source-backed CodeQL language detection. `./scripts/check.sh --ci` and 44 tracer tests passed; CodeQL upload remains owner-controlled. |
-| 2026-08-11 | S03 executor (PR #45 review follow-up 3) | Added package CI coverage/Linux markers, ndarray lineage, mutation-aware/frontier-fenced DAG edges, secure worker I/O, and fresh benchmark/tracer evidence. `./scripts/check.sh --ci`, 48 tracer tests, and 187 tests with 9 GPU cases deselected pass. |
-| 2026-08-11 | S03 executor (PR #45 CI follow-up 4) | Diagnosed the remote actionlint/pipx incompatibility and bumped CI's uv pin to 0.9.17. Local config/docs/shell lint passes; CodeQL upload remains owner-controlled. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 5) | Added TDD fixes for the pandas filter/reset chain, NumPy ufuncs and DataFrame construction, pandas→Torch conversion, descriptor mutation classification, and per-run persistent-worker configuration. Pointed the raw evidence manifest at `c9c1a89`; regenerated tracer reports/findings. `./scripts/check.sh --ci` passes: 193 tests, 9 GPU deselected. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 6) | Added failing-first fixes for logical view lineage, generation-aware pandas/NumPy handles, exact integral-vs-float correctness, and empty-trace analysis. Regenerated reports/findings and updated tracer docs. `./scripts/check.sh --ci` passes: 196 tests, 9 GPU deselected; CodeQL and release/publish gate findings remain owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 7) | Added failing-first fixes for cuDF distribution discovery and generation-safe opaque handles, including safe omission of non-weakrefable container identities. Updated tracer docs; report regeneration changed timings only, so the validated evidence set was retained. `./scripts/check.sh --ci` passes: 199 tests, 9 GPU deselected. |
 
 ## Notes for the next session
 

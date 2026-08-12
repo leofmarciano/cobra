@@ -18,7 +18,7 @@ import os
 import platform
 import subprocess
 from dataclasses import dataclass, field
-from importlib.metadata import PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, packages_distributions
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 from typing import Any
@@ -220,14 +220,15 @@ def collect_gpu_info() -> dict[str, Any]:
 # Software versions (importlib.metadata)
 # ---------------------------------------------------------------------------
 
-_TRACKED_PACKAGES: dict[str, str] = {
+_TRACKED_PACKAGES: dict[str, str | tuple[str, ...]] = {
     # key in output -> PyPI / importlib.metadata distribution name
     "pytorch": "torch",
     "triton": "triton",
     "pandas": "pandas",
-    # NVIDIA publishes the importable ``cudf`` module as the versioned
-    # ``cudf-cu13`` distribution used by the pipeline workspace.
-    "cudf": "cudf-cu13",
+    # NVIDIA publishes the importable ``cudf`` module under CUDA-versioned
+    # distributions.  ``collect_software_info`` also consults metadata's
+    # module-to-distribution map so future CUDA variants are discovered.
+    "cudf": ("cudf-cu13", "cudf-cu12", "cudf"),
     "numpy": "numpy",
     "pyarrow": "pyarrow",
 }
@@ -239,10 +240,18 @@ def collect_software_info() -> dict[str, Any]:
         "python": platform.python_version(),
         "manual": False,
     }
-    for key, dist_name in _TRACKED_PACKAGES.items():
-        try:
-            info[key] = pkg_version(dist_name)
-        except PackageNotFoundError:
+    for key, configured_names in _TRACKED_PACKAGES.items():
+        names = (configured_names,) if isinstance(configured_names, str) else configured_names
+        if key == "cudf":
+            discovered = packages_distributions().get("cudf", ())
+            names = tuple(dict.fromkeys((*names, *discovered)))
+        for dist_name in names:
+            try:
+                info[key] = pkg_version(dist_name)
+                break
+            except PackageNotFoundError:
+                continue
+        else:
             info[key] = None
     return info
 
