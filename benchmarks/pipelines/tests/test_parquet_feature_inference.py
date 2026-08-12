@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import pytest
+import torch
 from cobra_pipelines import parquet_feature_inference
 
 
@@ -68,6 +69,27 @@ def test_b1_produces_same_result_as_b0() -> None:
     # Float results may differ slightly due to compilation, but must be close
     assert abs(b0_result["mean_score"] - b1_result["mean_score"]) < 1e-4
     assert abs(b0_result["score_sum"] - b1_result["score_sum"]) < 1e-2
+
+
+def test_eager_mlp_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeModel(torch.nn.Module):
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            return value[..., :1]
+
+    parquet_feature_inference._EAGER_MODELS.clear()
+    calls: list[torch.nn.Module] = []
+    monkeypatch.setattr(
+        parquet_feature_inference,
+        "_SmallMLP",
+        lambda in_features, seed: calls.append(FakeModel()) or calls[-1],
+    )
+    device = torch.device("cpu")
+
+    first = parquet_feature_inference._get_eager_mlp(9, 42, device)
+    second = parquet_feature_inference._get_eager_mlp(9, 42, device)
+
+    assert first is second
+    assert len(calls) == 1
 
 
 def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:

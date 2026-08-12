@@ -96,10 +96,8 @@ def _float_key(
         name = type(value).__name__
         if name in configured:
             return name
-        if name == "float":
-            if "float" in configured:
-                return "float"
-            return "float64"
+        if name == "float" and "float" in configured:
+            return "float"
     return "float64"
 
 

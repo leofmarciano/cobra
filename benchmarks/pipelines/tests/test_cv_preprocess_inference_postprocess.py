@@ -112,6 +112,27 @@ def test_compiled_resnet_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(calls) == 1
 
 
+def test_eager_resnet_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeModel(torch.nn.Module):
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            return value
+
+    cv_preprocess_inference_postprocess._EAGER_RESNETS.clear()
+    calls: list[torch.nn.Module] = []
+    monkeypatch.setattr(
+        cv_preprocess_inference_postprocess.models,
+        "resnet18",
+        lambda weights: calls.append(FakeModel()) or calls[-1],
+    )
+    device = torch.device("cpu")
+
+    first = cv_preprocess_inference_postprocess._get_eager_resnet18(device)
+    second = cv_preprocess_inference_postprocess._get_eager_resnet18(device)
+
+    assert first is second
+    assert len(calls) == 1
+
+
 @pytest.mark.gpu
 def test_top_k_and_thresholding() -> None:
     """Postprocessing must return correct top-k classes with thresholding."""

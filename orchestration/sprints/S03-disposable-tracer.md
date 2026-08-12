@@ -260,3 +260,14 @@ the JSON schema documented in the tracer README.
   repeated overhead runs, and `./scripts/check.sh --ci` pass with 206 tests and
   9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL upload
   and release/publish gate findings remain owner-controlled.
+
+- [2026-08-11][executor PR #45 review follow-up 10] Added failing-first fixes
+  for the four new functional findings: `_float_key` now inspects both
+  expected and actual scalar types before defaulting; `cobra-bench run` writes
+  the measured Git revision and doctor-collected host/CUDA/software metadata
+  instead of copying the placeholder suite template; B0 now caches eager MLP,
+  Transformer, and ResNet models alongside the existing B1 compiled caches so
+  warm timing scopes are symmetric. Targeted harness and pipeline tests pass.
+  Next: regenerate phase-0 timing/analysis evidence from this clean revision,
+  update the baseline report, then monitor CI/Devin; CodeQL upload and
+  release/publish gate findings remain owner-controlled.

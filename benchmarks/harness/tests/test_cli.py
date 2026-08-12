@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
+from cobra_bench import cli as cli_module
 from cobra_bench.cli import main as cli_main
 
 
@@ -78,6 +80,73 @@ class TestRunSubcommand:
         assert rc == 0
         assert (output_dir / "samples.jsonl").is_file()
         assert (output_dir / "manifest.yaml").is_file()
+
+    def test_run_writes_measured_revision_and_environment(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "raw"
+        report = MagicMock(
+            data={
+                "host": {
+                    "hostname_alias": "measured-host",
+                    "os": "Linux",
+                    "kernel": "test-kernel",
+                    "cpu": "test-cpu",
+                    "numa_nodes": 1,
+                    "memory_gb": 1.0,
+                    "manual": False,
+                },
+                "gpu": {
+                    "driver": "test-driver",
+                    "toolkit": None,
+                    "gpu_name": "test-gpu",
+                    "gpu_uuid_hash": "test-uuid",
+                    "compute_capability": "8.0",
+                    "clocks_policy": "locked",
+                    "power_limit_watts": 100.0,
+                    "persistence_mode": True,
+                    "mig": "disabled",
+                    "manual": False,
+                },
+                "software": {
+                    "python": "3.13.0",
+                    "pytorch": "2.0.0",
+                    "triton": "3.0.0",
+                    "pandas": "2.0.0",
+                    "cudf": None,
+                    "numpy": "2.0.0",
+                    "pyarrow": "20.0.0",
+                    "manual": False,
+                },
+            }
+        )
+        with (
+            patch.object(cli_module, "_current_revision", return_value="abc123"),
+            patch.object(cli_module.doctor_module, "run_doctor", return_value=report),
+        ):
+            rc = cli_main(
+                [
+                    "run",
+                    "--suite",
+                    "benchmarks/suites/example.yaml",
+                    "--variants",
+                    "a",
+                    "--phase",
+                    "warm",
+                    "--min-samples",
+                    "2",
+                    "--output",
+                    str(output_dir),
+                    "--seed",
+                    "1",
+                ]
+            )
+
+        assert rc == 0
+        output_manifest = cli_module.load_manifest(output_dir / "manifest.yaml")
+        assert output_manifest.commit == "abc123"
+        assert output_manifest.workload_commit == "abc123"
+        assert output_manifest.host.hostname_alias == "measured-host"
+        assert output_manifest.cuda.gpu_name == "test-gpu"
+        assert output_manifest.software.pytorch == "2.0.0"
 
     def test_run_cold_requires_no_oracle(self, tmp_path: Path) -> None:
         output_dir = tmp_path / "raw"

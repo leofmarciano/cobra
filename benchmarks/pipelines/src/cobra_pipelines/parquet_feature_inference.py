@@ -359,13 +359,28 @@ class _SmallMLP(nn.Module):
         return cast(torch.Tensor, self.fc2(torch.relu(self.fc1(x))))
 
 
+_EAGER_MODELS: dict[tuple[int, int, str], nn.Module] = {}
+
+
+def _get_eager_mlp(in_features: int, seed: int, device: torch.device) -> nn.Module:
+    """Return the cached eager model used by the B0 warm baseline."""
+    cache_key = (in_features, seed, str(device))
+    model = _EAGER_MODELS.get(cache_key)
+    if model is not None:
+        return model
+
+    model = _SmallMLP(in_features, seed).to(device)
+    model.eval()
+    _EAGER_MODELS[cache_key] = model
+    return model
+
+
 def _mlp_scores(features: pd.DataFrame, seed: int) -> np.ndarray:
-    """Convert features to a torch tensor and run the seeded MLP."""
+    """Convert features to a torch tensor and run the cached eager MLP."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     x = torch.from_numpy(features.to_numpy(dtype=np.float64)).to(device, dtype=torch.float64)
-    model = _SmallMLP(x.shape[1], seed).to(device)
-    model.eval()
+    model = _get_eager_mlp(int(x.shape[1]), seed, device)
     with torch.inference_mode():
         return cast(np.ndarray, model(x).squeeze(-1).to("cpu", dtype=torch.float64).numpy())
 

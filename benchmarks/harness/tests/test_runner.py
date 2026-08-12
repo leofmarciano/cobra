@@ -179,6 +179,24 @@ class TestBuildOracle:
 
         assert oracle({"value": 1.05}) is True
 
+    def test_approx_uses_actual_dtype_when_expected_is_python_float(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class float32(float):
+            pass
+
+        expected = {"value": 1.0}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="dtype", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float32": 0.1},
+            atol_by_dtype={"float32": 0.0},
+        )
+
+        assert oracle({"value": float32(1.05)}) is True
+
 
 def test_verify_reuses_loaded_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verification must not execute the baseline again just to build its oracle."""

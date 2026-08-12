@@ -12,14 +12,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 from cobra_bench import analyze as analyze_module
 from cobra_bench import doctor as doctor_module
 from cobra_bench.compare import run_compare
 from cobra_bench.guardrails import GuardrailError
-from cobra_bench.manifest import load_manifest
+from cobra_bench.manifest import (
+    BenchmarkManifest,
+    CudaInfo,
+    HostInfo,
+    SoftwareInfo,
+    dump_manifest,
+    load_manifest,
+)
 from cobra_bench.runner import (
     TimingOptions,
     run_and_record,
@@ -215,6 +224,73 @@ def _parse_variant_list(value: str | None) -> list[str] | None:
     return [v.strip() for v in value.split(",") if v.strip()]
 
 
+def _current_revision() -> str | None:
+    """Return the source revision measured by a benchmark run."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    revision = result.stdout.strip()
+    return revision if result.returncode == 0 and revision else None
+
+
+def _capture_run_metadata(manifest: BenchmarkManifest) -> None:
+    """Populate a run manifest from the measured revision and host state."""
+    revision = _current_revision()
+    if revision is not None:
+        manifest.commit = revision
+        manifest.workload_commit = revision
+
+    environment = doctor_module.run_doctor().data
+    host = environment.get("host", {})
+    cuda = environment.get("gpu", {})
+    software = environment.get("software", {})
+    if not isinstance(host, dict):
+        host = {}
+    if not isinstance(cuda, dict):
+        cuda = {}
+    if not isinstance(software, dict):
+        software = {}
+
+    manifest.host = HostInfo(
+        hostname_alias=cast(str | None, host.get("hostname_alias")),
+        os=cast(str | None, host.get("os")),
+        kernel=cast(str | None, host.get("kernel")),
+        cpu=cast(str | None, host.get("cpu")),
+        numa_nodes=cast(int | None, host.get("numa_nodes")),
+        memory_gb=cast(float | None, host.get("memory_gb")),
+        manual=bool(host.get("manual", False)),
+    )
+    manifest.cuda = CudaInfo(
+        driver=cast(str | None, cuda.get("driver")),
+        toolkit=cast(str | None, cuda.get("toolkit")),
+        gpu_name=cast(str | None, cuda.get("gpu_name")),
+        gpu_uuid_hash=cast(str | None, cuda.get("gpu_uuid_hash")),
+        compute_capability=cast(str | None, cuda.get("compute_capability")),
+        clocks_policy=cast(str | None, cuda.get("clocks_policy")),
+        power_limit_watts=cast(float | None, cuda.get("power_limit_watts")),
+        persistence_mode=cast(bool | None, cuda.get("persistence_mode")),
+        mig=cast(str | None, cuda.get("mig")),
+        manual=bool(cuda.get("manual", False)),
+    )
+    manifest.software = SoftwareInfo(
+        python=cast(str | None, software.get("python")),
+        pytorch=cast(str | None, software.get("pytorch")),
+        triton=cast(str | None, software.get("triton")),
+        pandas=cast(str | None, software.get("pandas")),
+        cudf=cast(str | None, software.get("cudf")),
+        numpy=cast(str | None, software.get("numpy")),
+        pyarrow=cast(str | None, software.get("pyarrow")),
+        manual=bool(software.get("manual", False)),
+    )
+
+
 def _run_doctor(args: argparse.Namespace) -> int:
     report = doctor_module.run_doctor(
         strict=args.strict,
@@ -256,6 +332,7 @@ def _run_verify(args: argparse.Namespace) -> int:
 
 def _run_run(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.suite)
+    _capture_run_metadata(manifest)
     variants = _parse_variant_list(args.variants)
     options = TimingOptions(
         phase=args.phase,
@@ -276,7 +353,7 @@ def _run_run(args: argparse.Namespace) -> int:
     except (RuntimeError, ValueError, WarmupFailure, CorrectnessFailed) as exc:
         print(f"run: {exc}", file=sys.stderr)
         return 1
-    (output_dir / "manifest.yaml").write_text(Path(args.suite).read_text(), encoding="utf-8")
+    dump_manifest(manifest, output_dir / "manifest.yaml")
     return 0
 
 

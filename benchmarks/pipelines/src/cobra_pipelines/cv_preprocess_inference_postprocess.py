@@ -122,12 +122,7 @@ def _run_resnet18(preprocessed: torch.Tensor, device: torch.device) -> torch.Ten
 
     Returns raw logits of shape (batch, 1000).
     """
-    # Use default pretrained weights — pinned via torchvision version pin.
-    # set_default_weights is pinned by torchvision==0.28.0.
-    torch.manual_seed(0)  # ensure determinism in any stochastic path
-    weights = models.ResNet18_Weights.DEFAULT
-    model = models.resnet18(weights=weights).to(device)
-    model.eval()
+    model = _get_eager_resnet18(device)
 
     x = preprocessed.to(device)
     with torch.inference_mode():
@@ -205,7 +200,23 @@ def b0() -> dict[str, Any]:
     }
 
 
+_EAGER_RESNETS: dict[str, nn.Module] = {}
 _COMPILED_RESNETS: dict[str, nn.Module] = {}
+
+
+def _get_eager_resnet18(device: torch.device) -> nn.Module:
+    """Return the cached eager model used by the B0 warm baseline."""
+    cache_key = str(device)
+    model = _EAGER_RESNETS.get(cache_key)
+    if model is not None:
+        return model
+
+    torch.manual_seed(0)
+    weights = models.ResNet18_Weights.DEFAULT
+    model = models.resnet18(weights=weights).to(device)
+    model.eval()
+    _EAGER_RESNETS[cache_key] = model
+    return model
 
 
 def _get_compiled_resnet18(device: torch.device) -> nn.Module:

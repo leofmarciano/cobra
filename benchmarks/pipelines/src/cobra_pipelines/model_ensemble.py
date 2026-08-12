@@ -35,6 +35,7 @@ IN_FEATURES: int = 16
 
 WEIGHT_MLP: float = 0.6
 WEIGHT_TRANSFORMER: float = 0.4
+_EAGER_MODELS: dict[tuple[int, int, str], tuple[nn.Module, nn.Module]] = {}
 _COMPILED_MODELS: dict[tuple[int, int, str], tuple[nn.Module, nn.Module]] = {}
 
 
@@ -109,6 +110,26 @@ def _build_transformer(in_features: int, seed: int) -> _EnsembleTransformer:
     return _EnsembleTransformer(in_features, seed)
 
 
+def _get_eager_models(
+    in_features: int,
+    seed: int,
+    device: torch.device,
+) -> tuple[nn.Module, nn.Module]:
+    """Return cached eager branches so B0 and B1 measure the same scope."""
+    cache_key = (in_features, seed, str(device))
+    cached = _EAGER_MODELS.get(cache_key)
+    if cached is not None:
+        return cached
+
+    mlp = _build_mlp(in_features, seed).to(device)
+    mlp.eval()
+    transformer = _build_transformer(in_features, seed + 1).to(device)
+    transformer.eval()
+    cached = (mlp, transformer)
+    _EAGER_MODELS[cache_key] = cached
+    return cached
+
+
 def _get_compiled_models(
     in_features: int,
     seed: int,
@@ -154,13 +175,9 @@ def b0() -> dict[str, Any]:
     x = torch.randn(batch_size, in_features, generator=rng, dtype=torch.float64)
     x_dev = x.to(device)
 
-    # Branch A: MLP (independent — no shared mutable state with branch B)
-    mlp = _build_mlp(in_features, seed).to(device)
-    mlp.eval()
-
-    # Branch B: Transformer (independent — no shared mutable state with branch A)
-    transformer = _build_transformer(in_features, seed + 1).to(device)
-    transformer.eval()
+    # Branch A/B are independent and cached only for the warm eager baseline;
+    # B1 has a separate compiled cache below.
+    mlp, transformer = _get_eager_models(in_features, seed, device)
 
     with torch.inference_mode():
         mlp_scores = mlp(x_dev).squeeze(-1)  # (batch_size,)

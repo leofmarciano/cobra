@@ -133,6 +133,25 @@ def test_compiled_models_are_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(calls) == 2
 
 
+def test_eager_models_are_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[nn.Module] = []
+    model_ensemble._EAGER_MODELS.clear()
+    monkeypatch.setattr(model_ensemble, "_build_mlp", lambda in_features, seed: nn.Identity())
+    monkeypatch.setattr(
+        model_ensemble,
+        "_build_transformer",
+        lambda in_features, seed: nn.Identity(),
+    )
+
+    device = torch.device("cpu")
+    first = model_ensemble._get_eager_models(model_ensemble.IN_FEATURES, 7, device)
+    second = model_ensemble._get_eager_models(model_ensemble.IN_FEATURES, 7, device)
+
+    calls.extend(first)
+    assert first is second
+    assert len(calls) == 2
+
+
 @pytest.mark.gpu
 def test_b1_runs_and_returns_deterministic_result() -> None:
     """The b1 entrypoint must run end-to-end and return the same dict twice."""
