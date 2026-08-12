@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 8 in progress (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 9 in progress (executor session)
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | Push the tracer boundary/duration, compiled-cache, and worker-diagnostic fixes; monitor CI and Devin approval |
+| Current task | Commit/push the tracer hot-path performance fix; monitor CI and Devin approval |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Commit/push this follow-up; monitor the new workflow run and review threads |
+| Next action | Monitor the new workflow run and review threads after the follow-up 9 push |
 
 ## Blockers
 
@@ -65,6 +65,7 @@ Items an executor needs from the owner; answer by editing this list.
 | 2026-08-11 | S03 executor (PR #45 review follow-up 6) | Added failing-first fixes for logical view lineage, generation-aware pandas/NumPy handles, exact integral-vs-float correctness, and empty-trace analysis. Regenerated reports/findings and updated tracer docs. `./scripts/check.sh --ci` passes: 196 tests, 9 GPU deselected; CodeQL and release/publish gate findings remain owner-controlled. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 7) | Added failing-first fixes for cuDF distribution discovery and generation-safe opaque handles, including safe omission of non-weakrefable container identities. Updated tracer docs; report regeneration changed timings only, so the validated evidence set was retained. `./scripts/check.sh --ci` passes: 199 tests, 9 GPU deselected. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 8) | Added failing-first fixes for exclusive nested durations, recorder-internal Torch reads, CV generation/postprocess boundaries, compiled-model caching, and persistent-worker stderr diagnostics. Regenerated reports/findings: 88/346/1,899 events across the three workloads. `./scripts/check.sh --ci` passes: 205 tests, 9 GPU deselected; security gates remain owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 9) | Fixed the CI-only tracer overhead regression by caching CUDA availability per session, skipping CUDA runtime queries for CPU values, and reusing tensor storage identities within each event; added a regression test. `./scripts/check.sh --ci` passes: 206 tests, 9 GPU deselected; security gates remain owner-controlled. |
 
 ## Notes for the next session
 
@@ -72,7 +73,7 @@ Items an executor needs from the owner; answer by editing this list.
   Devin approves the final head; CodeQL upload and release/publish gate
   findings remain owner-controlled.
   Branch `sprint/S03-disposable-tracer` contains the corrected reports, findings
-  memo, fresh raw samples, and review/CI fixes.
+  memo, fresh raw samples, review/CI fixes, and the tracer hot-path optimization.
 - Next prompt is `P1-validate.md`: an independent Validator session must
   verify the work, run `./scripts/check.sh`, and either close the sprint or
   reopen with blockers.

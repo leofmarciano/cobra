@@ -124,3 +124,22 @@ def test_cuda_results_are_synchronized_before_timing(monkeypatch) -> None:
     mode.__torch_function__(fake_cuda_op, (), (), {})
 
     sync.assert_called_once_with()
+
+
+def test_cuda_availability_is_cached_for_a_trace_session(monkeypatch) -> None:
+    is_available = MagicMock(return_value=False)
+    monkeypatch.setattr(torch.cuda, "is_available", is_available)
+
+    session = TraceSession()
+    mode = TracingTorchFunctionMode(session)
+
+    class FakeCudaValue:
+        is_cuda = True
+
+    def fake_op() -> FakeCudaValue:
+        return FakeCudaValue()
+
+    mode.__torch_function__(fake_op, (), (), {})
+    mode.__torch_function__(fake_op, (), (), {})
+
+    assert is_available.call_count == 1

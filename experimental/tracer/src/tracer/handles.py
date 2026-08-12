@@ -83,7 +83,11 @@ def _opaque_handle(value: Any) -> str | None:
     return _generation_handle(value, "opaque")
 
 
-def tensor_storage_identity(value: Any) -> str | None:
+def tensor_storage_identity(
+    value: Any,
+    *,
+    cache: dict[int, tuple[Any, str | None]] | None = None,
+) -> str | None:
     """Return a generation-aware identity for a tensor's live allocation.
 
     Views share the same ``UntypedStorage``/StorageImpl and therefore the same
@@ -92,6 +96,10 @@ def tensor_storage_identity(value: Any) -> str | None:
     """
     if torch is None or not isinstance(value, torch.Tensor):
         return None
+    if cache is not None:
+        cached = cache.get(id(value))
+        if cached is not None and cached[0] is value:
+            return cached[1]
     try:
         storage = value.untyped_storage()
         raw_key = getattr(storage, "_cdata", None)
@@ -105,12 +113,19 @@ def tensor_storage_identity(value: Any) -> str | None:
             else:
                 generation = previous[1]
             _tensor_storage_generations[key] = (weakref.ref(storage), generation)
-        return f"{key}:{generation}"
+        identity = f"{key}:{generation}"
     except (AttributeError, RuntimeError, NotImplementedError, TypeError):
-        return f"obj:{id(value)}"
+        identity = f"obj:{id(value)}"
+    if cache is not None:
+        cache[id(value)] = (value, identity)
+    return identity
 
 
-def handle_for(value: Any) -> str | None:
+def handle_for(
+    value: Any,
+    *,
+    storage_cache: dict[int, tuple[Any, str | None]] | None = None,
+) -> str | None:
     """Return a stable value-identity handle for ``value``, or ``None``.
 
     Returns ``None`` for values with no useful identity to track (Python
@@ -118,7 +133,7 @@ def handle_for(value: Any) -> str | None:
     omit them from ``input_handles``/``output_handles``.
     """
     if torch is not None and isinstance(value, torch.Tensor):
-        identity = tensor_storage_identity(value)
+        identity = tensor_storage_identity(value, cache=storage_cache)
         return f"tensor:{identity}" if identity is not None else f"tensor:obj:{id(value)}"
     if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
         return _generation_handle(value, "pandas")
@@ -159,10 +174,15 @@ def _is_scalar_container(value: Any) -> bool:
     return all(isinstance(v, int | float | bool | str | bytes | type(None)) for v in items)
 
 
-def collect_handles(values: Any) -> tuple[str, ...]:
+def collect_handles(
+    values: Any,
+    *,
+    storage_cache: dict[int, tuple[Any, str | None]] | None = None,
+) -> tuple[str, ...]:
     """Recursively collect value handles from nested operation arguments."""
     handles: list[str] = []
     seen: set[str] = set()
+    seen_objects: set[int] = set()
 
     def visit(value: Any) -> None:
         if isinstance(value, Mapping):
@@ -173,7 +193,11 @@ def collect_handles(values: Any) -> tuple[str, ...]:
             for nested in value:
                 visit(nested)
             return
-        h = handle_for(value)
+        object_id = id(value)
+        if object_id in seen_objects:
+            return
+        seen_objects.add(object_id)
+        h = handle_for(value, storage_cache=storage_cache)
         if h is not None and h not in seen:
             seen.add(h)
             handles.append(h)
@@ -186,6 +210,7 @@ def collect_logical_handles(values: Any) -> tuple[str, ...]:
     """Recursively collect logical value handles from nested arguments."""
     handles: list[str] = []
     seen: set[str] = set()
+    seen_objects: set[int] = set()
 
     def visit(value: Any) -> None:
         if isinstance(value, Mapping):
@@ -196,6 +221,10 @@ def collect_logical_handles(values: Any) -> tuple[str, ...]:
             for nested in value:
                 visit(nested)
             return
+        object_id = id(value)
+        if object_id in seen_objects:
+            return
+        seen_objects.add(object_id)
         handle = logical_handle_for(value)
         if handle is not None and handle not in seen:
             seen.add(handle)

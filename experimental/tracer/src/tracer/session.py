@@ -55,6 +55,20 @@ class TraceSession:
         self.events: list[Event] = []
         self._next_id = 0
         self._lock = threading.Lock()
+        self._cuda_available: bool | None = None
+
+    def cuda_available(self) -> bool:
+        """Return the CUDA availability observed for this trace session.
+
+        ``torch.cuda.is_available()`` can query the CUDA runtime on every call.
+        Cache that stable process property once per session so the hot Torch
+        dispatch path does not pay the runtime-query cost for every event.
+        """
+        if self._cuda_available is None:
+            import torch
+
+            self._cuda_available = bool(torch.cuda.is_available())
+        return self._cuda_available
 
     @property
     def dispatch_suppressed(self) -> bool:
@@ -90,9 +104,10 @@ class TraceSession:
         # mode while still allowing nested user operations to be recorded.
         with self.suppress_dispatch():
             input_values = list(args) + list(kwargs.values())
+            storage_cache: dict[int, tuple[Any, str | None]] = {}
             metadata: dict[str, Any] = {
-                "inputs": [describe(a) for a in args],
-                "output": describe(result),
+                "inputs": [describe(a, storage_cache=storage_cache) for a in args],
+                "output": describe(result, storage_cache=storage_cache),
             }
             logical_inputs = collect_logical_handles(input_values)
             logical_outputs = collect_logical_handles(result)
@@ -108,8 +123,8 @@ class TraceSession:
                 kind=kind,
                 op=op,
                 args_summary=summarize_args(args, kwargs),
-                input_handles=collect_handles(input_values),
-                output_handles=collect_handles(result),
+                input_handles=collect_handles(input_values, storage_cache=storage_cache),
+                output_handles=collect_handles(result, storage_cache=storage_cache),
                 metadata=metadata,
                 start_ns=start_ns,
                 end_ns=end_ns,

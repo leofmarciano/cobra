@@ -249,3 +249,14 @@ the JSON schema documented in the tracer README.
   model, and 1,899 CV events. `./scripts/check.sh --ci` passes with 205 tests
   and 9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL
   upload and release/publish gate findings remain owner-controlled.
+
+- [2026-08-11][executor PR #45 review follow-up 9] Diagnosed the CI-only
+  failure of `test_tracer_overhead_under_10x_eager`: the Torch hot path queried
+  CUDA availability for every CPU event and repeated tensor storage identity
+  inspection within one event. Added a failing-first regression test, cached
+  availability per `TraceSession`, short-circuited CUDA checks for CPU values,
+  reused storage identities and object visits within each event, and kept
+  argument summaries free of allocation-identity work. Targeted tracer tests,
+  repeated overhead runs, and `./scripts/check.sh --ci` pass with 206 tests and
+  9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL upload
+  and release/publish gate findings remain owner-controlled.

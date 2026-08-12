@@ -59,7 +59,7 @@ class TracingTorchFunctionMode(TorchFunctionMode):
             return result
         with self._session.suppress_dispatch():
             has_cuda_value = _contains_cuda_value((args, kwargs, result))
-        if torch.cuda.is_available() and has_cuda_value:
+        if has_cuda_value and self._session.cuda_available():
             # CUDA calls are asynchronous.  Synchronize before taking the end
             # timestamp so analyzer durations include device completion.
             torch.cuda.synchronize()
@@ -113,7 +113,7 @@ def torch_numpy_boundary_recorder(session: TraceSession) -> Iterator[None]:
         result = original(raw_array, *args, **kwargs)
         with session.suppress_dispatch():
             has_cuda_result = _contains_cuda_value(result)
-        if torch.cuda.is_available() and has_cuda_result:
+        if has_cuda_result and session.cuda_available():
             torch.cuda.synchronize()
         end_ns = session.clock()
         session.record(

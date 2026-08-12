@@ -26,7 +26,11 @@ except ImportError:  # pragma: no cover
     np = None  # type: ignore[assignment]
 
 
-def describe(value: Any) -> dict[str, Any]:
+def describe(
+    value: Any,
+    *,
+    storage_cache: dict[int, tuple[Any, str | None]] | None = None,
+) -> dict[str, Any]:
     """Return a small dict of identity/shape metadata for ``value``.
 
     Returns ``{"kind": "scalar", "value": repr(...)}`` for anything without
@@ -34,7 +38,7 @@ def describe(value: Any) -> dict[str, Any]:
     large buffers.
     """
     if torch is not None and isinstance(value, torch.Tensor):
-        storage_id = tensor_storage_identity(value)
+        storage_id = tensor_storage_identity(value, cache=storage_cache)
         return {
             "kind": "tensor",
             "dtype": str(value.dtype),
@@ -71,16 +75,17 @@ def summarize_args(args: tuple[Any, ...], kwargs: dict[str, Any]) -> str:
 
 
 def _short(value: Any) -> str:
-    desc = describe(value)
-    kind = desc.get("kind")
-    if kind == "tensor":
-        return f"Tensor(dtype={desc['dtype']}, shape={desc['shape']}, device={desc['device']})"
-    if kind == "dataframe":
-        return f"DataFrame(shape={desc['shape']})"
-    if kind == "series":
-        return f"Series(dtype={desc['dtype']}, shape={desc['shape']})"
-    if kind == "ndarray":
-        return f"ndarray(dtype={desc['dtype']}, shape={desc['shape']})"
-    if kind == "scalar":
-        return str(desc["value"])
-    return f"<{kind}>"
+    # Keep argument summaries compact without repeating expensive storage
+    # identity inspection already performed by ``describe`` for event
+    # metadata.  Summaries do not need allocation identity.
+    if torch is not None and isinstance(value, torch.Tensor):
+        return f"Tensor(dtype={value.dtype}, shape={tuple(value.shape)}, device={value.device})"
+    if pd is not None and isinstance(value, pd.DataFrame):
+        return f"DataFrame(shape={tuple(value.shape)})"
+    if pd is not None and isinstance(value, pd.Series):
+        return f"Series(dtype={value.dtype}, shape={tuple(value.shape)})"
+    if np is not None and isinstance(value, np.ndarray):
+        return f"ndarray(dtype={value.dtype}, shape={tuple(value.shape)})"
+    if isinstance(value, int | float | bool | str | bytes | type(None)):
+        return repr(value)[:120]
+    return f"<{type(value).__name__}>"
