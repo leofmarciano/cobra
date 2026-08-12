@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -78,4 +80,43 @@ class TracingTorchFunctionMode(TorchFunctionMode):
 def _mutates_inputs(func: Any, kwargs: dict[str, Any]) -> bool:
     """Recognize Torch in-place and explicit ``out=`` operations."""
     name = getattr(func, "__name__", None) or getattr(func, "__qualname__", "")
-    return bool(name.endswith("_") or kwargs.get("out") is not None)
+    if kwargs.get("out") is not None:
+        return True
+    if name in {"__setitem__", "__delitem__"}:
+        return True
+    # Dunder descriptors such as ``getset_descriptor.__get__`` end in an
+    # underscore but only read an attribute; only ordinary trailing-underscore
+    # operation names (add_, copy_, ...) are conventional in-place ops.
+    return bool(name.endswith("_") and not name.startswith("__"))
+
+
+@contextmanager
+def torch_numpy_boundary_recorder(session: TraceSession) -> Iterator[None]:
+    """Record the NumPy-array -> Tensor boundary missed by TorchFunctionMode."""
+    original = torch.from_numpy
+
+    def wrapper(array: Any, *args: Any, **kwargs: Any) -> Any:
+        raw_array = array.view(np.ndarray) if isinstance(array, np.ndarray) else array
+        start_ns = session.clock()
+        result = original(raw_array, *args, **kwargs)
+        if torch.cuda.is_available() and _contains_cuda_value(result):
+            torch.cuda.synchronize()
+        end_ns = session.clock()
+        session.record(
+            "torch",
+            "torch.from_numpy",
+            args=(raw_array, *args),
+            kwargs=kwargs,
+            result=result,
+            start_ns=start_ns,
+            end_ns=end_ns,
+            extra_metadata={"mutates_inputs": False},
+            skip_source_dirs=(_THIS_DIR,),
+        )
+        return result
+
+    torch.from_numpy = wrapper  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        torch.from_numpy = original  # type: ignore[method-assign]

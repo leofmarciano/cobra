@@ -60,18 +60,64 @@ class TracedArray(np.ndarray):
         )
         return _wrap(result)
 
+    def __array_ufunc__(
+        self,
+        ufunc: Any,
+        method: str,
+        *inputs: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """Record operator syntax such as subtraction and division.
+
+        ``__array_function__`` covers named NumPy functions (``np.mean``),
+        while Python operators dispatch through this ufunc protocol.  Both
+        paths must preserve the traced-array lineage for normalization and
+        other arithmetic chains.
+        """
+        session = _ACTIVE_SESSION.get()
+        raw_inputs = tuple(_unwrap(value) for value in inputs)
+        raw_kwargs = {key: _unwrap(value) for key, value in kwargs.items()}
+        operation = getattr(ufunc, method)
+
+        if session is None:
+            return _wrap(operation(*raw_inputs, **raw_kwargs))
+
+        start_ns = session.clock()
+        result = operation(*raw_inputs, **raw_kwargs)
+        end_ns = session.clock()
+        op = f"numpy.{ufunc.__name__}"
+        if method != "__call__":
+            op = f"{op}.{method}"
+        session.record(
+            "numpy",
+            op,
+            args=raw_inputs,
+            kwargs=raw_kwargs,
+            result=result,
+            start_ns=start_ns,
+            end_ns=end_ns,
+            extra_metadata={"mutates_inputs": raw_kwargs.get("out") is not None},
+        )
+        return _wrap(result)
+
 
 def _unwrap(value: Any) -> Any:
     if isinstance(value, TracedArray):
         return value.view(np.ndarray)
     if isinstance(value, list | tuple):
         return type(value)(_unwrap(v) for v in value)
+    if isinstance(value, dict):
+        return {key: _unwrap(nested) for key, nested in value.items()}
     return value
 
 
 def _wrap(value: Any) -> Any:
     if isinstance(value, np.ndarray) and not isinstance(value, TracedArray):
         return value.view(TracedArray)
+    if isinstance(value, tuple):
+        return tuple(_wrap(nested) for nested in value)
+    if isinstance(value, list):
+        return [_wrap(nested) for nested in value]
     return value
 
 

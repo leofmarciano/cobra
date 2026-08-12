@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from tracer.handles import handle_for
 from tracer.session import TraceSession, trace
-from tracer.torch_mode import TracingTorchFunctionMode
+from tracer.torch_mode import TracingTorchFunctionMode, _mutates_inputs
 
 
 def test_records_torch_ops_with_metadata() -> None:
@@ -75,6 +75,27 @@ def test_tensor_numpy_boundary_crosses_into_numpy_tracing() -> None:
         np.mean(array)
 
     assert any(event.kind == "numpy" and event.op.endswith("mean") for event in session.events)
+
+
+def test_from_numpy_boundary_preserves_array_to_tensor_lineage() -> None:
+    with trace(enable_pandas=False) as session:
+        array = np.array([1.0, 2.0, 3.0])
+        tensor = torch.from_numpy(array)
+        converted = tensor.to(dtype=torch.float32)
+
+    from_numpy = next(event for event in session.events if event.op == "torch.from_numpy")
+    converted_event = next(event for event in session.events if event.op.endswith(".to"))
+    assert handle_for(array) in from_numpy.input_handles
+    assert handle_for(tensor) in from_numpy.output_handles
+    assert handle_for(tensor) in converted_event.input_handles
+    assert handle_for(converted) in converted_event.output_handles
+
+
+def test_descriptor_attribute_read_is_not_an_inplace_write() -> None:
+    class DescriptorRead:
+        __name__ = "__get__"
+
+    assert not _mutates_inputs(DescriptorRead(), {})
 
 
 def test_cuda_results_are_synchronized_before_timing(monkeypatch) -> None:

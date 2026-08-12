@@ -22,6 +22,7 @@ from tracer.session import TraceSession
 # plan §10.1 v0.1 supported operations, mapped to the pandas API names that
 # implement them for DataFrame/Series.
 _DATAFRAME_METHODS = (
+    "__init__",  # construction boundary from NumPy/Arrow data back to pandas
     "__getitem__",  # column projection / boolean filtering
     "__setitem__",  # in-place column mutation
     "assign",
@@ -32,15 +33,30 @@ _DATAFRAME_METHODS = (
     "merge",
     "join",
     "sort_values",
+    "copy",
+    "reset_index",
     "to_numpy",
 )
 _SERIES_METHODS = (
     "__add__",
     "__mul__",
+    "__gt__",
+    "__ge__",
+    "__lt__",
+    "__le__",
+    "__eq__",
+    "__ne__",
+    "__and__",
+    "__or__",
+    "__rand__",
+    "__ror__",
+    "__invert__",
     "astype",
     "fillna",
     "dropna",
     "sort_values",
+    "notna",
+    "isna",
     "to_numpy",
 )
 _MODULE_FUNCTIONS = ("concat", "get_dummies", "read_parquet")
@@ -57,7 +73,7 @@ def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any]
         end_ns = session.clock()
         if isinstance(result, np.ndarray):
             result = wrap_numpy(result)
-        recorded_result = self if name == "__setitem__" else result
+        recorded_result = self if name in {"__init__", "__setitem__"} else result
         session.record(
             "pandas",
             f"pandas.{cls.__name__}.{name}",
@@ -69,7 +85,7 @@ def _wrap_method(cls: type, name: str, session: TraceSession) -> tuple[str, Any]
             result=recorded_result,
             start_ns=start_ns,
             end_ns=end_ns,
-            extra_metadata={"mutates_inputs": name in {"__setitem__", "__delitem__"}},
+            extra_metadata={"mutates_inputs": name in {"__init__", "__setitem__", "__delitem__"}},
         )
         return result
 

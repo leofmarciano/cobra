@@ -111,12 +111,13 @@ def trace(
     """
     from tracer.numpy_wrap import numpy_recorder
     from tracer.pandas_wrap import pandas_recorder
-    from tracer.torch_mode import TracingTorchFunctionMode
+    from tracer.torch_mode import TracingTorchFunctionMode, torch_numpy_boundary_recorder
 
     session = TraceSession()
     with ExitStack() as stack:
         if enable_torch:
             stack.enter_context(TracingTorchFunctionMode(session))
+            stack.enter_context(torch_numpy_boundary_recorder(session))
         if enable_pandas:
             stack.enter_context(pandas_recorder(session))
         if enable_numpy:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from tracer.dag import build_dag
+from tracer.handles import handle_for
 from tracer.session import trace
 
 
@@ -66,8 +67,56 @@ def test_records_feature_engineering_mutations_and_module_functions() -> None:
     assignment = next(
         event for event in session.events if event.op == "pandas.DataFrame.__setitem__"
     )
-    from tracer.handles import handle_for
-
     assert handle_for(df) in assignment.output_handles
     dag = build_dag(session.events)
     assert any(edge["from"] != edge["to"] and edge["to"] == assignment.id for edge in dag["edges"])
+
+
+def test_records_boolean_filter_and_reset_index_dependency_chain() -> None:
+    with trace(enable_torch=False, enable_numpy=False) as session:
+        df = pd.DataFrame(
+            {
+                "feature_a": [0.0, 2.0, -2.0],
+                "flag": [True, True, True],
+                "score": [1.0, None, 3.0],
+            }
+        )
+        filtered = df[(df["feature_a"] > -1.0) & df["flag"] & df["score"].notna()].reset_index(
+            drop=True
+        )
+
+    ops = {event.op for event in session.events}
+    assert {
+        "pandas.Series.__gt__",
+        "pandas.Series.__and__",
+        "pandas.Series.notna",
+        "pandas.DataFrame.__getitem__",
+        "pandas.DataFrame.reset_index",
+    } <= ops
+
+    reset = next(event for event in session.events if event.op == "pandas.DataFrame.reset_index")
+    assert handle_for(filtered) in reset.output_handles
+    filter_event = next(
+        event
+        for event in reversed(session.events)
+        if event.op == "pandas.DataFrame.__getitem__"
+        and set(reset.input_handles) & set(event.output_handles)
+    )
+    dag = build_dag(session.events)
+    edges = {(edge["from"], edge["to"], edge["kind"]) for edge in dag["edges"]}
+    assert (filter_event.id, reset.id, "data") in edges
+
+
+def test_records_numpy_to_dataframe_construction_boundary() -> None:
+    with trace(enable_torch=False) as session:
+        values = np.array([[1.0, 2.0]])
+        frame = pd.DataFrame(values, columns=["a", "b"])
+        array = frame.to_numpy()
+
+    constructor = next(event for event in session.events if event.op == "pandas.DataFrame.__init__")
+    to_numpy = next(event for event in session.events if event.op == "pandas.DataFrame.to_numpy")
+    assert handle_for(values) in constructor.input_handles
+    assert handle_for(frame) in constructor.output_handles
+    assert handle_for(array) in to_numpy.output_handles
+    dag = build_dag(session.events)
+    assert {"from": constructor.id, "to": to_numpy.id, "kind": "data"} in dag["edges"]

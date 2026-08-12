@@ -72,22 +72,36 @@ _B1_WORKER_ENV_KEYS = (
     N_ROWS_ENV,
     SEED_ENV,
 )
-_B1_WORKER_CODE = """
+_B1_REQUEST_KEYS = (DATA_DIR_ENV, N_ROWS_ENV, SEED_ENV)
+_B1_WORKER_CODE = f"""
 import contextlib
 import json
+import os
 import sys
 
 from cobra_pipelines.parquet_feature_inference import _b1_inprocess
 
+_REQUEST_KEYS = {_B1_REQUEST_KEYS!r}
 for command in sys.stdin:
-    if command.strip() != "run":
-        continue
     try:
+        config = json.loads(command)
+        if not isinstance(config, dict):
+            raise TypeError("worker request must be a JSON object")
+        for key in _REQUEST_KEYS:
+            value = config.get(key)
+            if value is None:
+                os.environ.pop(key, None)
+            elif isinstance(value, str):
+                os.environ[key] = value
+            else:
+                raise TypeError(f"worker config {{key}} must be a string or null")
         with contextlib.redirect_stdout(sys.stderr):
             result = _b1_inprocess()
         print(json.dumps(result, sort_keys=True), flush=True)
     except BaseException as exc:
-        print(json.dumps({"__cobra_error__": f"{type(exc).__name__}: {exc}"}), flush=True)
+        print(
+            json.dumps({{"__cobra_error__": f"{{type(exc).__name__}}: {{exc}}"}}), flush=True
+        )
 """
 
 
@@ -120,7 +134,10 @@ class _B1Worker:
             if self.process.stdin is None or self.process.stdout is None:
                 raise RuntimeError("isolated parquet B1 worker pipes are unavailable")
             try:
-                self.process.stdin.write("run\n")
+                request = json.dumps(
+                    {key: os.environ.get(key) for key in _B1_REQUEST_KEYS}, sort_keys=True
+                )
+                self.process.stdin.write(f"{request}\n")
                 self.process.stdin.flush()
                 line = self.process.stdout.readline()
             except (BrokenPipeError, OSError) as exc:

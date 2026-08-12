@@ -50,3 +50,19 @@ def test_pandas_numpy_boundary_preserves_array_lineage() -> None:
     numpy_event = next(event for event in session.events if event.op == "numpy.mean")
     assert handle_for(array) in boundary.output_handles
     assert handle_for(array) in numpy_event.input_handles
+
+
+def test_records_ufunc_normalization_and_preserves_lineage() -> None:
+    with trace(enable_torch=False, enable_pandas=False) as session:
+        values = wrap(np.array([1.0, 2.0, 4.0]))
+        mean = np.mean(values)
+        std = np.std(values)
+        centered = values - mean
+        normalized = centered / std
+
+    subtract = next(event for event in session.events if event.op == "numpy.subtract")
+    divide = next(event for event in session.events if event.op == "numpy.divide")
+    assert handle_for(values) in subtract.input_handles
+    assert handle_for(centered) in subtract.output_handles
+    assert handle_for(centered) in divide.input_handles
+    assert handle_for(normalized) in divide.output_handles

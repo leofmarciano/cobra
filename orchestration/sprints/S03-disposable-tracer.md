@@ -210,3 +210,14 @@ the JSON schema documented in the tracer README.
   requires `uv >=0.9.17`. Updated `.github/workflows/ci.yml` to `uv 0.9.17`;
   local config/docs/shell lint and `git diff --check` pass. The fix is ready to
   push; CodeQL upload remains the only review thread intentionally open.
+
+- [2026-08-11][executor PR #45 review follow-up 5] Added failing-first tests
+  and fixes for the new Devin findings: pandas comparison/boolean/notna/
+  reset-index boundaries and DataFrame construction writes; NumPy
+  `__array_ufunc__` subtraction/division lineage; the patched `torch.from_numpy`
+  boundary; descriptor-safe mutation detection in the Torch adapter and DAG;
+  and a JSON per-run configuration protocol for the persistent parquet worker.
+  Updated the raw evidence manifest to the measured `c9c1a89` revision and
+  regenerated the three tracer reports plus findings memo. `./scripts/check.sh
+  --ci` passes with 193 tests and 9 GPU tests deselected. Next: commit/push and
+  monitor CI and Devin; Advanced Security remains owner-controlled.

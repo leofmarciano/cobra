@@ -99,6 +99,26 @@ def test_read_only_alias_does_not_become_storage_producer() -> None:
     assert (1, 2, "order") not in edges
 
 
+def test_descriptor_attribute_read_does_not_advance_storage_producer() -> None:
+    events = [
+        _ev(0, "torch", "torch.zeros", outputs=("tensor:0",)),
+        _ev(
+            1,
+            "torch",
+            "torch.getset_descriptor.__get__",
+            inputs=("tensor:0",),
+            outputs=("tensor:0",),
+        ),
+        _ev(2, "torch", "torch.mean", inputs=("tensor:0",), outputs=("tensor:1",)),
+    ]
+
+    edges = _edges(build_dag(events))
+
+    assert (0, 1, "data") in edges
+    assert (0, 2, "data") in edges
+    assert (1, 2, "order") not in edges
+
+
 def test_opaque_node_gets_ordering_edges_to_neighbors() -> None:
     # Pure side-effect opaque nodes with no data dependencies to/from their
     # neighbors: only program-order edges should connect them.

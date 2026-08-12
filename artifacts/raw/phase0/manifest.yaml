@@ -2,8 +2,8 @@
 # T2-T4 add model_ensemble, cv_preprocess_inference_postprocess, and the b1 variants.
 run_id: phase0-v0
 suite: phase0
-commit: "774c8ddd7db9ee734184e84936503cddac22463f"
-workload_commit: "774c8ddd7db9ee734184e84936503cddac22463f"
+commit: "c9c1a89ae1fec5fddd2cd132fa79394227b47a0a"
+workload_commit: "c9c1a89ae1fec5fddd2cd132fa79394227b47a0a"
 container_digest: null
 
 host:

@@ -112,8 +112,14 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(parquet_feature_inference.subprocess, "Popen", FakeProcess)
     monkeypatch.setenv("COBRA_TEST_SECRET", "must-not-cross-process-boundary")
+    monkeypatch.setenv(parquet_feature_inference.DATA_DIR_ENV, "/tmp/cobra-first")
+    monkeypatch.setenv(parquet_feature_inference.N_ROWS_ENV, "1000")
+    monkeypatch.setenv(parquet_feature_inference.SEED_ENV, "12345")
 
     assert parquet_feature_inference.b1() == {"n_rows": 1}
+    monkeypatch.setenv(parquet_feature_inference.DATA_DIR_ENV, "/tmp/cobra-second")
+    monkeypatch.setenv(parquet_feature_inference.N_ROWS_ENV, "2000")
+    monkeypatch.setenv(parquet_feature_inference.SEED_ENV, "54321")
     assert parquet_feature_inference.b1() == {"n_rows": 1}
     assert len(FakeProcess.instances) == 1
     process = FakeProcess.instances[0]
@@ -122,7 +128,19 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert worker_env[parquet_feature_inference._B1_WORKER_ENV] == "1"
     assert "COBRA_TEST_SECRET" not in worker_env
     assert process.kwargs["stderr"] == parquet_feature_inference.subprocess.DEVNULL
-    assert process.stdin.writes == ["run\n", "run\n"]
+    requests = [json.loads(value) for value in process.stdin.writes]
+    assert requests == [
+        {
+            parquet_feature_inference.DATA_DIR_ENV: "/tmp/cobra-first",
+            parquet_feature_inference.N_ROWS_ENV: "1000",
+            parquet_feature_inference.SEED_ENV: "12345",
+        },
+        {
+            parquet_feature_inference.DATA_DIR_ENV: "/tmp/cobra-second",
+            parquet_feature_inference.N_ROWS_ENV: "2000",
+            parquet_feature_inference.SEED_ENV: "54321",
+        },
+    ]
 
     worker = parquet_feature_inference._B1_WORKER
     assert worker is not None

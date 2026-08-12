@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 CI follow-up 4 in progress (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 5 in progress (executor session)
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | Push the actionlint/uv CI fix; monitor CI, CodeQL, and Devin approval |
+| Current task | Push the six Devin review fixes; monitor CI, CodeQL, and Devin approval |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Push the CI fix and monitor the new workflow run |
+| Next action | Commit/push the tracer, worker-protocol, evidence, and report fixes; monitor the new workflow run |
 
 ## Blockers
 
@@ -59,13 +59,14 @@ Items an executor needs from the owner; answer by editing this list.
 | 2026-08-11 | S03 executor (PR #45 review follow-up 2) | Added the persistent cuDF worker/cache, pandas boundaries, generation-aware handles, tolerance propagation, memoized reachability, and source-backed CodeQL language detection. `./scripts/check.sh --ci` and 44 tracer tests passed; CodeQL upload remains owner-controlled. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 3) | Added package CI coverage/Linux markers, ndarray lineage, mutation-aware/frontier-fenced DAG edges, secure worker I/O, and fresh benchmark/tracer evidence. `./scripts/check.sh --ci`, 48 tracer tests, and 187 tests with 9 GPU cases deselected pass. |
 | 2026-08-11 | S03 executor (PR #45 CI follow-up 4) | Diagnosed the remote actionlint/pipx incompatibility and bumped CI's uv pin to 0.9.17. Local config/docs/shell lint passes; CodeQL upload remains owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 5) | Added TDD fixes for the pandas filter/reset chain, NumPy ufuncs and DataFrame construction, pandas→Torch conversion, descriptor mutation classification, and per-run persistent-worker configuration. Pointed the raw evidence manifest at `c9c1a89`; regenerated tracer reports/findings. `./scripts/check.sh --ci` passes: 193 tests, 9 GPU deselected. |
 
 ## Notes for the next session
 
 - S03 tasks T1–T4 are complete, but PR #45 review follow-up remains open until
-  the CodeQL upload gate is enabled and Devin approves the final head. Branch
-  `sprint/S03-disposable-tracer` contains the corrected reports, findings memo,
-  fresh raw samples, and review/CI fixes.
+  Devin approves the final head; the CodeQL upload gate remains owner-controlled.
+  Branch `sprint/S03-disposable-tracer` contains the corrected reports, findings
+  memo, fresh raw samples, and review/CI fixes.
 - Next prompt is `P1-validate.md`: an independent Validator session must
   verify the work, run `./scripts/check.sh`, and either close the sprint or
   reopen with blockers.

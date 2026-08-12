@@ -114,7 +114,9 @@ def _event_mutates_inputs(event: Event) -> bool:
     if isinstance(explicit, bool):
         return explicit
     operation = event.op.rsplit(".", 1)[-1]
-    return operation.endswith("_")
+    if operation in {"__setitem__", "__delitem__"}:
+        return True
+    return operation.endswith("_") and not operation.startswith("__")
 
 
 def _add_opaque_ordering_edges(events: list[Event], edges: set[tuple[int, int, str]]) -> None:
