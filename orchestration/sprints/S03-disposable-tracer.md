@@ -268,6 +268,9 @@ the JSON schema documented in the tracer README.
   instead of copying the placeholder suite template; B0 now caches eager MLP,
   Transformer, and ResNet models alongside the existing B1 compiled caches so
   warm timing scopes are symmetric. Targeted harness and pipeline tests pass.
-  Next: regenerate phase-0 timing/analysis evidence from this clean revision,
-  update the baseline report, then monitor CI/Devin; CodeQL upload and
-  release/publish gate findings remain owner-controlled.
+  Regenerated correctness and 180 warm samples from `7b3d6bf`, with B1/B0
+  speedups of 0.478x parquet, 0.950x model ensemble, and 1.023x CV; updated
+  the raw manifest, statistical analysis, and baseline report. The full gate
+  passes with 211 tests and 9 GPU tests deselected. Next: commit/push and
+  monitor CI/Devin; CodeQL upload and release/publish gate findings remain
+  owner-controlled.

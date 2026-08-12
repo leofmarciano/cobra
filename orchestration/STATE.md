@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 10 in progress (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 10 ready for push (executor session)
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | Commit the symmetric warm-cache, measured-manifest, and tolerance fixes; regenerate baseline evidence |
+| Current task | Push regenerated baseline evidence; monitor CI and Devin approval |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Commit this follow-up, regenerate phase-0 timing artifacts, then monitor CI and Devin |
+| Next action | Monitor the new workflow run and review threads after the follow-up 10 push |
 
 ## Blockers
 
@@ -62,11 +62,9 @@ Items an executor needs from the owner; answer by editing this list.
 
 | Date | Session | Result |
 |---|---|---|
-| 2026-08-11 | S03 executor (PR #45 review follow-up 6) | Added failing-first fixes for logical view lineage, generation-aware pandas/NumPy handles, exact integral-vs-float correctness, and empty-trace analysis. Regenerated reports/findings and updated tracer docs. `./scripts/check.sh --ci` passes: 196 tests, 9 GPU deselected; CodeQL and release/publish gate findings remain owner-controlled. |
-| 2026-08-11 | S03 executor (PR #45 review follow-up 7) | Added failing-first fixes for cuDF distribution discovery and generation-safe opaque handles, including safe omission of non-weakrefable container identities. Updated tracer docs; report regeneration changed timings only, so the validated evidence set was retained. `./scripts/check.sh --ci` passes: 199 tests, 9 GPU deselected. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 8) | Added failing-first fixes for exclusive nested durations, recorder-internal Torch reads, CV generation/postprocess boundaries, compiled-model caching, and persistent-worker stderr diagnostics. Regenerated reports/findings: 88/346/1,899 events across the three workloads. `./scripts/check.sh --ci` passes: 205 tests, 9 GPU deselected; security gates remain owner-controlled. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 9) | Fixed the CI-only tracer overhead regression by caching CUDA availability per session, skipping CUDA runtime queries for CPU values, and reusing tensor storage identities within each event; added a regression test. `./scripts/check.sh --ci` passes: 206 tests, 9 GPU deselected; security gates remain owner-controlled. |
-| 2026-08-11 | S03 executor (PR #45 review follow-up 10) | Added failing-first fixes for dtype-aware tolerance selection, measured revision/environment manifests, and symmetric eager model caches for parquet, model-ensemble, and CV workloads. Targeted tests pass; baseline timing/report artifacts must be regenerated from this clean revision. Security gates remain owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 10) | Added failing-first fixes for dtype-aware tolerance selection, measured revision/environment manifests, and symmetric eager model caches for parquet, model-ensemble, and CV workloads. Regenerated correctness and 180 warm samples from `7b3d6bf`; B1/B0 is 0.478x parquet, 0.950x ensemble, and 1.023x CV. `./scripts/check.sh --ci` passes: 211 tests, 9 GPU deselected; security gates remain owner-controlled. |
 
 ## Notes for the next session
 
@@ -75,7 +73,7 @@ Items an executor needs from the owner; answer by editing this list.
   findings remain owner-controlled.
   Branch `sprint/S03-disposable-tracer` contains the corrected reports, findings
   memo, fresh raw samples, review/CI fixes, tracer hot-path optimization, and
-  the pending symmetric warm-baseline fixes.
+  the symmetric warm-baseline evidence.
 - Next prompt is `P1-validate.md`: an independent Validator session must
   verify the work, run `./scripts/check.sh`, and either close the sprint or
   reopen with blockers.

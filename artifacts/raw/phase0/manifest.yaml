@@ -1,11 +1,7 @@
-# Phase 0 baseline suite (S02).  Begins with workload 1 (parquet_feature_inference);
-# T2-T4 add model_ensemble, cv_preprocess_inference_postprocess, and the b1 variants.
 run_id: phase0-v0
 suite: phase0
-commit: "c9c1a89ae1fec5fddd2cd132fa79394227b47a0a"
-workload_commit: "c9c1a89ae1fec5fddd2cd132fa79394227b47a0a"
-container_digest: null
-
+commit: 7b3d6bfd36cf661c1c05e6746f77c9c12298decb
+workload_commit: 7b3d6bfd36cf661c1c05e6746f77c9c12298decb
 host:
   hostname_alias: DESKTOP-P3JA7HS
   os: Linux 6.6.87.2-microsoft-standard-WSL2
@@ -14,81 +10,76 @@ host:
   numa_nodes: 1
   memory_gb: 15.62
   manual: false
-
 cuda:
-  driver: "591.86"
-  toolkit: null
+  driver: '591.86'
   gpu_name: NVIDIA GeForce RTX 3080
   gpu_uuid_hash: d568fd47914b117e
-  compute_capability: "8.6"
-  clocks_policy: "0x0000000000000001"
+  compute_capability: '8.6'
+  clocks_policy: '0x0000000000000001'
   power_limit_watts: 320.0
   persistence_mode: true
-  mig: "[N/A]"
+  mig: '[N/A]'
   manual: false
-
 software:
-  python: "3.13.12"
-  pytorch: "2.13.0"
-  triton: "3.7.1"
-  pandas: "2.3.3"
-  cudf: "26.6.0"
-  numpy: "2.4.6"
-  pyarrow: "23.0.1"
+  python: 3.13.12
+  pytorch: 2.13.0
+  triton: 3.7.1
+  pandas: 2.3.3
+  cudf: 26.6.0
+  numpy: 2.4.6
+  pyarrow: 23.0.1
   manual: false
-
 protocol:
   warmup_policy: stability
+  warmup_samples: 5
   minimum_samples: 30
   configuration_order: randomized
   correctness_required: true
   confidence_interval: bootstrap-95
-
 correctness:
   comparator: approx
-  equal_nan: true
   rtol_by_dtype:
-    float64: 1.0e-5
-    float32: 1.0e-4
-    float16: 1.0e-2
-    bfloat16: 1.0e-2
+    float64: 1.0e-05
+    float32: 0.0001
+    float16: 0.01
+    bfloat16: 0.01
   atol_by_dtype:
-    float64: 1.0e-8
-    float32: 1.0e-6
-    float16: 1.0e-3
-    bfloat16: 1.0e-3
-
+    float64: 1.0e-08
+    float32: 1.0e-06
+    float16: 0.001
+    bfloat16: 0.001
+  equal_nan: true
 workloads:
-  - name: parquet_feature_inference
-    input_fingerprint: parquet-feature-inference-v0
-    variants:
-      - name: b0
-        entrypoint: "cobra_pipelines.parquet_feature_inference:b0"
-      # B1: torch.compile(mode=default, fullgraph=False) on MLP +
-      # cudf.pandas install() if available (transparent acceleration)
-      - name: b1
-        entrypoint: "cobra_pipelines.parquet_feature_inference:b1"
-
-  - name: model_ensemble
-    input_fingerprint: model-ensemble-v0
-    variants:
-      - name: b0
-        entrypoint: "cobra_pipelines.model_ensemble:b0"
-      # B1: torch.compile(mode=default, fullgraph=False) on both MLP and Transformer
-      - name: b1
-        entrypoint: "cobra_pipelines.model_ensemble:b1"
-
-  - name: cv_preprocess_inference_postprocess
-    input_fingerprint: cv-preprocess-inference-postprocess-v0
-    correctness:
-      comparator: approx
-      rtol_by_dtype:
-        float: 1.0e-3
-      atol_by_dtype:
-        float: 1.0e-3
-    variants:
-      - name: b0
-        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b0"
-      # B1: torch.compile(mode=default, fullgraph=False) on resnet18 only
-      - name: b1
-        entrypoint: "cobra_pipelines.cv_preprocess_inference_postprocess:b1"
+- name: parquet_feature_inference
+  variants:
+  - name: b0
+    entrypoint: cobra_pipelines.parquet_feature_inference:b0
+    manual: false
+  - name: b1
+    entrypoint: cobra_pipelines.parquet_feature_inference:b1
+    manual: false
+  input_fingerprint: parquet-feature-inference-v0
+- name: model_ensemble
+  variants:
+  - name: b0
+    entrypoint: cobra_pipelines.model_ensemble:b0
+    manual: false
+  - name: b1
+    entrypoint: cobra_pipelines.model_ensemble:b1
+    manual: false
+  input_fingerprint: model-ensemble-v0
+- name: cv_preprocess_inference_postprocess
+  variants:
+  - name: b0
+    entrypoint: cobra_pipelines.cv_preprocess_inference_postprocess:b0
+    manual: false
+  - name: b1
+    entrypoint: cobra_pipelines.cv_preprocess_inference_postprocess:b1
+    manual: false
+  input_fingerprint: cv-preprocess-inference-postprocess-v0
+  correctness:
+    comparator: approx
+    rtol_by_dtype:
+      float: 0.001
+    atol_by_dtype:
+      float: 0.001

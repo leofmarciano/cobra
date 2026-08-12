@@ -52,16 +52,20 @@ The three workloads are defined in
 3. `cv_preprocess_inference_postprocess` — synthetic images → CPU preprocessing
    (resize/normalize) → torchvision resnet18 → top-k/threshold postprocess.
 
-B0 is plain eager Python.  B1 applies `torch.compile(mode=default, fullgraph=False)`
+B0 is plain eager Python. B1 applies `torch.compile(mode=default, fullgraph=False)`
 to the model(s) and uses `cudf.pandas.install()` for the Parquet/dataframe workload.
-No manual restructuring was performed.
+For the warm phase, both variants cache model construction outside measured
+samples; only B1 adds compilation and transparent cuDF acceleration. No manual
+restructuring was performed.
 
 ## Reproducing the measurements
 
-The timing artifacts were regenerated in the PR worktree after the persistent
-B1 worker/cache changes. The exact source revision and host are recorded in
-the Git history and `artifacts/environment/primary-host.json`. The commands
-were:
+The timing artifacts were regenerated from commit
+`7b3d6bfd36cf661c1c05e6746f77c9c12298decb` after the persistent worker and
+symmetric warm-cache changes. `cobra-bench run` records the measured Git
+revision and doctor-collected host/CUDA/software metadata in
+`artifacts/raw/phase0/manifest.yaml`; the exact host record is also kept in
+`artifacts/environment/primary-host.json`. The commands were:
 
 ```bash
 # Correctness qualification (must pass before timing is valid per §33.4)
@@ -94,18 +98,18 @@ the timing samples still use the public `b1()` entrypoint.
 
 | Workload | Variant | Median (ms) | p95 (ms) | p99 (ms) | CV | Speedup vs B0 | 95% CI | Significant |
 |---|---|---:|---:|---:|---:|---:|---|---:|
-| parquet_feature_inference | b0 | 46.337 | 54.483 | 55.587 | 0.077 | 1.000x | [1.000x, 1.000x] | no |
-| parquet_feature_inference | b1 | 51.531 | 61.302 | 63.372 | 0.091 | 0.899x | [0.835x, 0.950x] | yes |
-| model_ensemble | b0 | 87.443 | 92.707 | 93.133 | 0.033 | 1.000x | [1.000x, 1.000x] | no |
-| model_ensemble | b1 | 91.934 | 106.034 | 176.767 | 0.216 | 0.951x | [0.938x, 0.971x] | yes |
-| cv_preprocess_inference_postprocess | b0 | 234.842 | 267.084 | 271.083 | 0.052 | 1.000x | [1.000x, 1.000x] | no |
-| cv_preprocess_inference_postprocess | b1 | 238.323 | 304.130 | 311.052 | 0.102 | 0.985x | [0.971x, 1.021x] | no |
+| parquet_feature_inference | b0 | 25.065 | 27.108 | 27.725 | 0.040 | 1.000x | [1.000x, 1.000x] | no |
+| parquet_feature_inference | b1 | 52.391 | 65.816 | 68.771 | 0.097 | 0.478x | [0.455x, 0.495x] | yes |
+| model_ensemble | b0 | 8.255 | 8.736 | 8.837 | 0.038 | 1.000x | [1.000x, 1.000x] | no |
+| model_ensemble | b1 | 8.686 | 9.716 | 9.924 | 0.061 | 0.950x | [0.901x, 0.977x] | yes |
+| cv_preprocess_inference_postprocess | b0 | 26.343 | 31.815 | 33.251 | 0.077 | 1.000x | [1.000x, 1.000x] | no |
+| cv_preprocess_inference_postprocess | b1 | 25.743 | 27.194 | 27.348 | 0.035 | 1.023x | [0.998x, 1.064x] | no |
 
-**Suite geometric-mean speedup (B1 vs B0):** 0.945x — i.e. the automatic tools
-are, on average, slightly slower than eager Python for these particular small
-workloads.  This is expected: the workloads are intentionally small and
-synchronous, so compilation and cudf acceleration overheads are not amortized.
-The important product baseline is the B1 number Cobra must beat.
+**Suite geometric-mean speedup (B1 vs B0):** 0.775x — i.e. the automatic tools
+are slower than eager Python on average for these particular small workloads.
+This is expected: the workloads are intentionally small and synchronous, so
+compilation and cuDF acceleration overheads are not amortized. The important
+product baseline is the B1 number Cobra must beat.
 
 ## Nsight Systems trace capture
 
@@ -169,11 +173,10 @@ nsys stats --report cuda_gpu_kern_sum --report cuda_api_sum --report osrt_sum \
 
 ### 1. parquet_feature_inference
 
-**Observation:** B1 is ~11% slower than B0 (51.5 ms vs 46.3 ms). The persistent
-worker now keeps cuDF activation and the compiled MLP alive across warm samples,
-so this result no longer includes a fresh interpreter/compile for every sample.
-The B1 run uses `cudf.pandas` for dataframe operations and `torch.compile` for
-the MLP.
+**Observation:** B1 is ~52% slower than B0 (52.4 ms vs 25.1 ms). Both variants
+reuse their eager/compiled MLP across warm samples; B1 still pays the isolated
+cuDF dispatch and worker path for this small 100k-row workload. The B1 run uses
+`cudf.pandas` for dataframe operations and `torch.compile` for the MLP.
 
 **Where the time goes (from `parquet_feature_inference-b1.nsys-rep`):**
 
@@ -198,8 +201,9 @@ already-fast GPU kernels.
 
 ### 2. model_ensemble
 
-**Observation:** B1 is ~5% slower than B0 (91.9 ms vs 87.4 ms). Both branches
-(MLP and TransformerEncoder) are `torch.compile`d in B1.
+**Observation:** B1 is ~5% slower than B0 (8.7 ms vs 8.3 ms). Both variants
+reuse their two eager branches across warm samples, while both MLP and
+TransformerEncoder branches are `torch.compile`d in B1.
 
 **Where the time goes (from `model_ensemble-b1.nsys-rep`):**
 
@@ -221,9 +225,10 @@ on the critical path and minimize fence operations.
 
 ### 3. cv_preprocess_inference_postprocess
 
-**Observation:** B1 is ~1.5% slower than B0 (238.3 ms vs 234.8 ms), and the
-95% interval crosses 1.0x. The compiled resnet18 path is close to parity for
-this sample set; no speedup is claimed.
+**Observation:** B1 is ~2.3% faster than B0 (25.7 ms vs 26.3 ms), and the 95%
+interval crosses 1.0x. Both variants reuse their ResNet18 across warm samples;
+the compiled path is close to parity for this sample set, so no speedup is
+claimed.
 
 **Where the time goes (from `cv_preprocess_inference_postprocess-b1.nsys-rep`):**
 
