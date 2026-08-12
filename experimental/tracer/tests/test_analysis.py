@@ -51,6 +51,38 @@ def test_empty_trace_produces_empty_analysis() -> None:
     assert result["parallel_regions"] == []
 
 
+def test_nested_recorder_events_use_exclusive_durations() -> None:
+    events = [
+        Event(
+            id=0,
+            kind="pandas",
+            op="pandas.DataFrame.copy",
+            args_summary="",
+            output_handles=("df:copy",),
+            start_ns=110,
+            end_ns=150,
+            thread_id=1,
+        ),
+        Event(
+            id=1,
+            kind="pandas",
+            op="pandas.DataFrame.reset_index",
+            args_summary="",
+            input_handles=("df:copy",),
+            output_handles=("df:reset",),
+            start_ns=100,
+            end_ns=210,
+            thread_id=1,
+        ),
+    ]
+
+    result = analyze(build_dag(events))
+
+    assert result["total_work_ns"] == 110
+    assert result["critical_path_ns"] == 110
+    assert result["critical_path_node_ids"] == [0, 1]
+
+
 def test_fan_out_fan_in_speedup() -> None:
     events = [
         _ev(0, "torch", "input", outputs=("t:0",), duration_ns=5),

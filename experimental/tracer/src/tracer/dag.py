@@ -127,6 +127,8 @@ def _node_from_event(event: Event) -> dict[str, Any]:
         "args_summary": event.args_summary,
         "metadata": event.metadata,
         "duration_ns": event.duration_ns,
+        "start_ns": event.start_ns,
+        "end_ns": event.end_ns,
         "thread_id": event.thread_id,
         "source": event.source,
     }

@@ -127,7 +127,12 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(worker_env, dict)
     assert worker_env[parquet_feature_inference._B1_WORKER_ENV] == "1"
     assert "COBRA_TEST_SECRET" not in worker_env
-    assert process.kwargs["stderr"] == parquet_feature_inference.subprocess.DEVNULL
+    worker = parquet_feature_inference._B1_WORKER
+    assert worker is not None
+    assert process.kwargs["stderr"] is worker._stderr_file
+    process.kwargs["stderr"].write("child traceback\n")
+    process.kwargs["stderr"].flush()
+    assert worker._stderr_detail() == "child traceback"
     requests = [json.loads(value) for value in process.stdin.writes]
     assert requests == [
         {
@@ -142,6 +147,4 @@ def test_b1_isolates_cudf_activation(monkeypatch: pytest.MonkeyPatch) -> None:
         },
     ]
 
-    worker = parquet_feature_inference._B1_WORKER
-    assert worker is not None
     worker.close()

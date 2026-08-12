@@ -48,12 +48,18 @@ class TracingTorchFunctionMode(TorchFunctionMode):
         args: tuple[Any, ...] = (),
         kwargs: dict[str, Any] | None = None,
     ) -> Any:
+        if self._session.dispatch_suppressed:
+            return func(*args, **(kwargs or {}))
         kwargs = kwargs or {}
         start_ns = self._session.clock()
         result = func(*args, **kwargs)
         if isinstance(result, np.ndarray):
             result = wrap_numpy(result)
-        if torch.cuda.is_available() and _contains_cuda_value((args, kwargs, result)):
+        if _is_internal_torch_read(func):
+            return result
+        with self._session.suppress_dispatch():
+            has_cuda_value = _contains_cuda_value((args, kwargs, result))
+        if torch.cuda.is_available() and has_cuda_value:
             # CUDA calls are asynchronous.  Synchronize before taking the end
             # timestamp so analyzer durations include device completion.
             torch.cuda.synchronize()
@@ -75,6 +81,12 @@ class TracingTorchFunctionMode(TorchFunctionMode):
             skip_source_dirs=(_THIS_DIR,),
         )
         return result
+
+
+def _is_internal_torch_read(func: Any) -> bool:
+    """Exclude descriptor/storage introspection from the program trace."""
+    qualname = getattr(func, "__qualname__", "")
+    return "getset_descriptor" in qualname or qualname.endswith(".untyped_storage")
 
 
 def _mutates_inputs(func: Any, kwargs: dict[str, Any]) -> bool:
@@ -99,7 +111,9 @@ def torch_numpy_boundary_recorder(session: TraceSession) -> Iterator[None]:
         raw_array = array.view(np.ndarray) if isinstance(array, np.ndarray) else array
         start_ns = session.clock()
         result = original(raw_array, *args, **kwargs)
-        if torch.cuda.is_available() and _contains_cuda_value(result):
+        with session.suppress_dispatch():
+            has_cuda_result = _contains_cuda_value(result)
+        if torch.cuda.is_available() and has_cuda_result:
             torch.cuda.synchronize()
         end_ns = session.clock()
         session.record(

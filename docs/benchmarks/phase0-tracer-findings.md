@@ -10,13 +10,17 @@ separate measured observations from candidates that still require validation.
 ## Method
 
 ```bash
-uv run python -m tracer.run --workload all --out experimental/tracer/reports
+cd experimental/tracer
+uv run python -m tracer.run --workload all --out reports
 ```
 
 The tracer records call boundaries, value-identity handles, per-value metadata
 (dtype, shape, device, storage id), and wall-clock durations. It then builds a
 dependency DAG and computes critical path, theoretical speedup, transfer
-boundaries, and candidate fork/join parallel regions. For CUDA-valued torch
+boundaries, and candidate fork/join parallel regions. Nested recorder
+intervals are reported with exclusive durations, and recorder-internal Torch
+metadata/descriptor reads are excluded. Unsupported CV generation and
+postprocessing boundaries are recorded explicitly. For CUDA-valued torch
 calls, the recorder synchronizes before taking the end timestamp so the
 reported duration includes device completion.
 
@@ -27,16 +31,16 @@ torch MLP → projection.
 
 Observed from trace:
 
-* **Total events:** 108
-* **Total recorded work:** 400.609 ms
-* **Critical path (span):** 389.180 ms
+* **Total events:** 88
+* **Total recorded work:** 409.031 ms
+* **Critical path (span):** 397.879 ms
 * **Theoretical speedup:** 1.03x
-* **Transfer boundaries:** 6 host/device transfers totaling 134.757 ms; five
-  `cpu → cuda:0` transfers account for 134.295 ms.
-* **Dominant critical-path op:** `torch.TensorBase.to`, 133.415 ms (34.3% of
-  the span); `pandas.read_parquet` is second at 97.849 ms (25.1%).
+* **Transfer boundaries:** 6 host/device transfers totaling 131.553 ms; five
+  `cpu → cuda:0` transfers account for 130.978 ms.
+* **Dominant critical-path op:** `torch.TensorBase.to`, 129.891 ms (32.6% of
+  the span); `pandas.read_parquet` is second at 104.260 ms (26.2%).
 * **Candidate parallel regions:** 8 coarse candidates; the largest reported
-  overlap opportunity is 4.545 ms and is not a validated schedule.
+  overlap opportunity is 3.790 ms and is not a validated schedule.
 
 ### Concrete opportunities
 
@@ -53,13 +57,14 @@ Observed from trace:
    execution path could fuse them into one kernel and avoid materializing the
    intermediate DataFrame.
 
-The regenerated trace now also records the pandas/NumPy/torch boundaries
-explicitly: the boolean filter (`Series.__gt__`, `Series.__and__`,
-`Series.notna`, and `DataFrame.reset_index`), `DataFrame.__init__`,
-`DataFrame.to_numpy`, `numpy.mean`, `numpy.std`, `numpy.equal`,
-`numpy.where`, `numpy.subtract`, `numpy.divide`, and `torch.from_numpy`.
-Together these events connect filtering, normalization, frame reconstruction,
-and tensor conversion for later whole-program passes.
+The regenerated trace records the pandas/NumPy/torch boundaries explicitly:
+the boolean filter (`Series.__gt__`, `Series.__and__`, `Series.notna`, and
+`DataFrame.reset_index`), `DataFrame.__init__`, `DataFrame.to_numpy`,
+`numpy.mean`, `numpy.std`, `numpy.equal`, `numpy.where`, `numpy.subtract`,
+`numpy.divide`, and `torch.from_numpy`. Together these events connect
+filtering, normalization, frame reconstruction, and tensor conversion for
+later whole-program passes. Nested pandas calls are counted exclusively, so
+the enclosing boundary no longer double-counts an instrumented child.
 
 Storage handles still alias read-only views for mutation ordering, while the
 tracer's logical handles retain view lineage; the regenerated DAG therefore
@@ -78,16 +83,16 @@ TransformerEncoder) → weighted aggregation → CPU summary.
 
 Observed from trace:
 
-* **Total events:** 514
-* **Total recorded work:** 157.118 ms
-* **Critical path (span):** 145.176 ms
-* **Theoretical speedup:** 1.08x
+* **Total events:** 346
+* **Total recorded work:** 181.092 ms
+* **Critical path (span):** 165.304 ms
+* **Theoretical speedup:** 1.10x
 * **Top critical-path op:** `torch.nn.functional.multi_head_attention_forward`,
-  118.332 ms (81.5% of the span).
-* **Transfer boundaries:** 38 transfers totaling 3.065 ms.
-* **Candidate parallel regions:** 60 coarse fork/join candidates. The largest
+  133.042 ms (80.5% of the span).
+* **Transfer boundaries:** 38 transfers totaling 4.527 ms.
+* **Candidate parallel regions:** 20 coarse fork/join candidates. The largest
   reported candidate is a `torch.TensorBase.to` node 2 →
-  `torch.TensorBase.add` node 503 region, with only 1.067 ms of estimated
+  `torch.TensorBase.add` node 335 region, with only 1.426 ms of estimated
   overlap.
 
 The source workload does contain two independent model calls, but this
@@ -123,19 +128,25 @@ on GPU → softmax/top-k → CPU summary.
 
 Observed from trace:
 
-* **Total events:** 3,345
-* **Total recorded work:** 864.763 ms
-* **Critical path (span):** 620.116 ms
-* **Theoretical speedup:** 1.39x
-* **Top critical-path operations:** `conv2d` at 278.565 ms and `linear` at
-  99.024 ms.
-* **Transfer boundaries:** 125 transfers totaling 65.290 ms; 123 are
-  `cpu → cuda:0` moves totaling 65.014 ms, and 2 return to CPU.
+* **Total events:** 1,899
+* **Total recorded work:** 1.526 s
+* **Critical path (span):** 1.144 s
+* **Theoretical speedup:** 1.33x
+* **Top critical-path operations:** `conv2d` at 495.678 ms and `linear` at
+  200.074 ms.
+* **Transfer boundaries:** 125 transfers totaling 109.411 ms; 123 are
+  `cpu → cuda:0` moves totaling 108.516 ms, and 2 return to CPU.
 * **Device residency:** CPU preprocessing → GPU inference → CPU postprocessing,
-  with the main GPU boundary at node 2677.
-* **Candidate parallel regions:** 2,931 coarse candidates. The top candidate
-  is an `add_` → `add_` region with 6.207 ms of estimated overlap, not a
-  validated end-to-end CPU/GPU pipeline overlap.
+  with the main GPU boundary at node 1354.
+* **Candidate parallel regions:** 3,064 coarse candidates. The top candidate
+  is the `batch_norm` → `cv.postprocess` region with 11.053 ms of estimated
+  overlap, not a validated end-to-end CPU/GPU pipeline overlap.
+
+The CV trace now includes explicit opaque boundaries for deterministic
+synthetic-image generation and the final CPU postprocessing projection. This
+keeps the whole-program span connected through both previously opaque phases;
+the compiled ResNet model is cached across warm invocations so the B1 timing
+window does not repeatedly include model construction and compilation.
 
 ### Concrete opportunities
 
@@ -159,9 +170,9 @@ the whole program.
 
 | Workload | Span | Work/span | Dominant critical-path op | Cross-library opportunity |
 |---|---:|---:|---|---|
-| parquet_feature_inference | 389.180 ms | 1.03x | `torch.TensorBase.to` | pandas/cuDF → torch GPU handoff |
-| model_ensemble | 145.176 ms | 1.08x | `multi_head_attention_forward` | two model branches on separate streams |
-| cv_preprocess_inference_postprocess | 620.116 ms | 1.39x | `conv2d` | CPU preprocessing ↔ GPU inference pipeline |
+| parquet_feature_inference | 397.879 ms | 1.03x | `torch.TensorBase.to` | pandas/cuDF → torch GPU handoff |
+| model_ensemble | 165.304 ms | 1.10x | `multi_head_attention_forward` | two model branches on separate streams |
+| cv_preprocess_inference_postprocess | 1.144 s | 1.33x | `conv2d` | CPU preprocessing ↔ GPU inference pipeline |
 
 The parquet handoff and the model-ensemble branch schedule remain promising
 S04 high-risk experiments because they cross pandas/NumPy/torch or separate

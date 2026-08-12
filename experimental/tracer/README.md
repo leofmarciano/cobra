@@ -93,8 +93,10 @@ print(metrics["parallel_regions"])
 
 Analysis returns:
 
-* `total_work_ns` — sum of recorded op durations.
-* `critical_path_ns` — longest dependency-path duration (span).
+* `total_work_ns` — sum of exclusive op durations (nested recorder intervals
+  are counted once).
+* `critical_path_ns` — longest dependency-path duration (span), using those
+  exclusive durations.
 * `max_speedup` — work / span.
 * `top5_critical_ops` — five largest contributors on the critical path.
 * `transfer_boundaries` — explicit host/device `.to`/`.cpu`/`.cuda`/`from_numpy` events.
@@ -104,7 +106,7 @@ Analysis returns:
 ## Generating workload reports
 
 ```bash
-uv run python -m tracer.run --workload all --out experimental/tracer/reports/
+(cd experimental/tracer && uv run python -m tracer.run --workload all --out reports)
 ```
 
 This traces the three Phase 0 workloads, writes a Markdown report and a
@@ -128,6 +130,8 @@ outlive `experimental/`.
       "args_summary": "Tensor(...)",
       "metadata": {...},
       "duration_ns": 1234,
+      "start_ns": 1000000,
+      "end_ns": 1001234,
       "thread_id": 1234567890,
       "source": "pipeline.py:42"
     }

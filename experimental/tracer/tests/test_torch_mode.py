@@ -89,6 +89,17 @@ def test_from_numpy_boundary_preserves_array_to_tensor_lineage() -> None:
     assert handle_for(tensor) in from_numpy.output_handles
     assert handle_for(tensor) in converted_event.input_handles
     assert handle_for(converted) in converted_event.output_handles
+    assert not any(
+        "getset_descriptor" in event.op or "untyped_storage" in event.op for event in session.events
+    )
+
+
+def test_torch_descriptor_reads_are_not_recorded_as_program_operations() -> None:
+    with trace(enable_pandas=False, enable_numpy=False) as session:
+        tensor = torch.zeros(1)
+        _ = tensor.dtype
+
+    assert not any("getset_descriptor" in event.op for event in session.events)
 
 
 def test_descriptor_attribute_read_is_not_an_inplace_write() -> None:

@@ -19,7 +19,8 @@ element-wise with tolerances per the harness comparator.
 
 from __future__ import annotations
 
-from typing import Any, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import torch
@@ -40,12 +41,27 @@ CONFIDENCE_THRESHOLD: float = 0.01
 # ImageNet normalization constants
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
+_T = TypeVar("_T")
+
+
+def _run_traced_boundary(
+    op_name: str,
+    func: Callable[..., _T],
+    *args: Any,
+    **kwargs: Any,
+) -> _T:
+    """Record a boundary when the disposable tracer is installed and active."""
+    try:
+        from tracer.session import run_boundary
+    except ImportError:
+        return func(*args, **kwargs)
+    return run_boundary(op_name, func, *args, **kwargs)
 
 
 # --- Synthetic data generation ---
 
 
-def _generate_synthetic_images(batch_size: int, seed: int) -> list[np.ndarray]:
+def _generate_synthetic_images_impl(batch_size: int, seed: int) -> list[np.ndarray]:
     """Generate a batch of synthetic uint8 HWC images with deterministic RNG."""
     rng = np.random.default_rng(seed)
     images: list[np.ndarray] = []
@@ -53,6 +69,15 @@ def _generate_synthetic_images(batch_size: int, seed: int) -> list[np.ndarray]:
         img = rng.integers(0, 256, size=(IMAGE_H, IMAGE_W, 3), dtype=np.uint8)
         images.append(img)
     return images
+
+
+def _generate_synthetic_images(batch_size: int, seed: int) -> list[np.ndarray]:
+    return _run_traced_boundary(
+        "cv.synthetic_image_generation",
+        _generate_synthetic_images_impl,
+        batch_size,
+        seed,
+    )
 
 
 # --- CPU preprocessing (intentionally CPU-bound) ---
@@ -113,7 +138,7 @@ def _run_resnet18(preprocessed: torch.Tensor, device: torch.device) -> torch.Ten
 # --- Postprocessing ---
 
 
-def _postprocess(logits: torch.Tensor, top_k: int, threshold: float) -> dict[str, Any]:
+def _postprocess_impl(logits: torch.Tensor, top_k: int, threshold: float) -> dict[str, Any]:
     """Softmax → top-k → threshold filtering.
 
     Returns a dict with per-image top-1 class IDs, confidences, and
@@ -136,6 +161,16 @@ def _postprocess(logits: torch.Tensor, top_k: int, threshold: float) -> dict[str
         "top1_confidences": top1_confidences,
         "n_above_threshold": n_above_threshold,
     }
+
+
+def _postprocess(logits: torch.Tensor, top_k: int, threshold: float) -> dict[str, Any]:
+    return _run_traced_boundary(
+        "cv.postprocess",
+        _postprocess_impl,
+        logits,
+        top_k,
+        threshold,
+    )
 
 
 # --- Pipeline entrypoint ---
@@ -170,7 +205,10 @@ def b0() -> dict[str, Any]:
     }
 
 
-def _run_resnet18_compiled(preprocessed: torch.Tensor, device: torch.device) -> torch.Tensor:
+_COMPILED_RESNETS: dict[str, nn.Module] = {}
+
+
+def _get_compiled_resnet18(device: torch.device) -> nn.Module:
     """Run torch.compiled resnet18 with deterministic (default) weights.
 
     Returns raw logits of shape (batch, 1000).
@@ -179,12 +217,22 @@ def _run_resnet18_compiled(preprocessed: torch.Tensor, device: torch.device) -> 
 
     ensure_nvcc_in_path()
 
+    cache_key = str(device)
+    compiled_model = _COMPILED_RESNETS.get(cache_key)
+    if compiled_model is not None:
+        return compiled_model
+
     torch.manual_seed(0)
     weights = models.ResNet18_Weights.DEFAULT
     model = models.resnet18(weights=weights).to(device)
     model.eval()
-
     compiled_model = cast(nn.Module, torch.compile(model, mode="default", fullgraph=False))
+    _COMPILED_RESNETS[cache_key] = compiled_model
+    return compiled_model
+
+
+def _run_resnet18_compiled(preprocessed: torch.Tensor, device: torch.device) -> torch.Tensor:
+    compiled_model = _get_compiled_resnet18(device)
 
     x = preprocessed.to(device)
     with torch.inference_mode():

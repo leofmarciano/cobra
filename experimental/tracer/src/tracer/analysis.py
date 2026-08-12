@@ -34,18 +34,20 @@ def analyze(dag: dict[str, Any]) -> dict[str, Any]:
         ``device_timeline``, and ``parallel_regions``.
     """
     nodes = dag["nodes"]
-    node_map = {n["id"]: n for n in nodes}
+    durations = _exclusive_durations(nodes)
+    effective_nodes = [{**node, "duration_ns": durations[node["id"]]} for node in nodes]
+    node_map = {n["id"]: n for n in effective_nodes}
     preds, succs = _build_adjacency(dag["edges"])
     topo = _topo_sort(nodes, preds, succs)
 
-    total_work_ns = sum(int(n["duration_ns"]) for n in nodes)
+    total_work_ns = sum(durations.values())
     critical_path_ns, critical_path_node_ids = _longest_path(node_map, preds, succs, topo)
 
     max_speedup = total_work_ns / critical_path_ns if critical_path_ns > 0 else 1.0
 
     top5 = _top_critical_ops(node_map, critical_path_node_ids, limit=5)
-    transfers = _detect_transfers(nodes)
-    device_timeline = _device_timeline(nodes)
+    transfers = _detect_transfers(effective_nodes)
+    device_timeline = _device_timeline(effective_nodes)
 
     return {
         "total_work_ns": total_work_ns,
@@ -58,6 +60,51 @@ def analyze(dag: dict[str, Any]) -> dict[str, Any]:
         "device_timeline": device_timeline,
         "parallel_regions": _find_parallel_regions(dag, node_map, preds, succs),
     }
+
+
+def _exclusive_durations(nodes: list[dict[str, Any]]) -> dict[int, int]:
+    """Subtract nested same-thread recorder intervals from each event.
+
+    Adapter boundaries can nest (for example ``reset_index`` calling an
+    instrumented ``copy``).  Sum the union of strictly contained child
+    intervals so nested work is counted once while independent threads retain
+    their full durations. Synthetic DAG nodes without real timestamps keep
+    their stored durations.
+    """
+    durations = {int(node["id"]): int(node["duration_ns"]) for node in nodes}
+    by_thread: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for node in nodes:
+        start = int(node.get("start_ns", 0))
+        end = int(node.get("end_ns", 0))
+        if start > 0 and end > start:
+            by_thread[int(node.get("thread_id", 0))].append(node)
+
+    for thread_nodes in by_thread.values():
+        for node in thread_nodes:
+            node_id = int(node["id"])
+            start = int(node["start_ns"])
+            end = int(node["end_ns"])
+            nested = sorted(
+                (
+                    int(child["start_ns"]),
+                    int(child["end_ns"]),
+                )
+                for child in thread_nodes
+                if int(child["id"]) != node_id
+                and int(child["start_ns"]) > start
+                and int(child["end_ns"]) < end
+            )
+            covered = 0
+            covered_end = start
+            for child_start, child_end in nested:
+                if child_start >= covered_end:
+                    covered += max(0, child_end - child_start)
+                    covered_end = child_end
+                elif child_end > covered_end:
+                    covered += child_end - covered_end
+                    covered_end = child_end
+            durations[node_id] = max(0, end - start - covered)
+    return durations
 
 
 def _build_adjacency(

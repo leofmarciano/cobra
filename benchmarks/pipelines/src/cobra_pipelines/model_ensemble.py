@@ -35,6 +35,7 @@ IN_FEATURES: int = 16
 
 WEIGHT_MLP: float = 0.6
 WEIGHT_TRANSFORMER: float = 0.4
+_COMPILED_MODELS: dict[tuple[int, int, str], tuple[nn.Module, nn.Module]] = {}
 
 
 # --- Model definitions ---
@@ -106,6 +107,32 @@ def _build_mlp(in_features: int, seed: int) -> _EnsembleMLP:
 def _build_transformer(in_features: int, seed: int) -> _EnsembleTransformer:
     """Construct the transformer branch with deterministic weights."""
     return _EnsembleTransformer(in_features, seed)
+
+
+def _get_compiled_models(
+    in_features: int,
+    seed: int,
+    device: torch.device,
+) -> tuple[nn.Module, nn.Module]:
+    """Return cached compiled branches for the fixed warm-sample shape."""
+    cache_key = (in_features, seed, str(device))
+    cached = _COMPILED_MODELS.get(cache_key)
+    if cached is not None:
+        return cached
+
+    mlp = _build_mlp(in_features, seed).to(device)
+    mlp.eval()
+    compiled_mlp = cast(nn.Module, torch.compile(mlp, mode="default", fullgraph=False))
+
+    transformer = _build_transformer(in_features, seed + 1).to(device)
+    transformer.eval()
+    compiled_transformer = cast(
+        nn.Module,
+        torch.compile(transformer, mode="default", fullgraph=False),
+    )
+    cached = (compiled_mlp, compiled_transformer)
+    _COMPILED_MODELS[cache_key] = cached
+    return cached
 
 
 # --- Pipeline ---
@@ -182,15 +209,7 @@ def b1() -> dict[str, Any]:
     x = torch.randn(batch_size, in_features, generator=rng, dtype=torch.float64)
     x_dev = x.to(device)
 
-    # Branch A: MLP with torch.compile
-    mlp = _build_mlp(in_features, seed).to(device)
-    mlp.eval()
-    compiled_mlp = torch.compile(mlp, mode="default", fullgraph=False)
-
-    # Branch B: Transformer with torch.compile
-    transformer = _build_transformer(in_features, seed + 1).to(device)
-    transformer.eval()
-    compiled_transformer = torch.compile(transformer, mode="default", fullgraph=False)
+    compiled_mlp, compiled_transformer = _get_compiled_models(in_features, seed, device)
 
     with torch.inference_mode():
         mlp_scores = compiled_mlp(x_dev).squeeze(-1)  # (batch_size,)

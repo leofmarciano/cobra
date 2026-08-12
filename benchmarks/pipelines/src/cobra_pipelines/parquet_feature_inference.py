@@ -111,19 +111,26 @@ class _B1Worker:
     def __init__(self) -> None:
         environment = {key: os.environ[key] for key in _B1_WORKER_ENV_KEYS if key in os.environ}
         environment[_B1_WORKER_ENV] = "1"
-        self.process = subprocess.Popen(
-            [sys.executable, "-u", "-c", _B1_WORKER_CODE],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            # The worker redirects diagnostic stdout here. Do not leave a
-            # PIPE undrained: a verbose compile would fill it and deadlock the
-            # child before it can emit its JSON response. Suppression also
-            # prevents raw diagnostic text from being copied into CI logs.
-            stderr=subprocess.DEVNULL,
-            text=True,
-            bufsize=1,
-            env=environment,
+        # The file lives for the worker lifetime, so a with-statement cannot
+        # own it; close() below releases it after the child exits.
+        self._stderr_file = tempfile.TemporaryFile(  # noqa: SIM115
+            mode="w+", encoding="utf-8"
         )
+        try:
+            self.process = subprocess.Popen(
+                [sys.executable, "-u", "-c", _B1_WORKER_CODE],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                # A regular file cannot fill and deadlock the child, while
+                # retaining diagnostics for failures in the parent.
+                stderr=self._stderr_file,
+                text=True,
+                bufsize=1,
+                env=environment,
+            )
+        except BaseException:
+            self._stderr_file.close()
+            raise
         self._lock = threading.Lock()
 
     def run(self) -> dict[str, Any]:
@@ -151,30 +158,36 @@ class _B1Worker:
             except json.JSONDecodeError as exc:
                 raise RuntimeError("isolated parquet B1 returned invalid JSON") from exc
             if isinstance(result, dict) and "__cobra_error__" in result:
-                raise RuntimeError(f"isolated parquet B1 failed: {result['__cobra_error__']}")
+                detail = self._stderr_detail()
+                suffix = f": {detail}" if detail else ""
+                raise RuntimeError(
+                    f"isolated parquet B1 failed: {result['__cobra_error__']}{suffix}"
+                )
             if not isinstance(result, dict):
                 raise RuntimeError("isolated parquet B1 returned a non-object result")
             return cast(dict[str, Any], result)
 
     def _stderr_detail(self) -> str:
-        if self.process.stderr is None:
-            return ""
         try:
-            return self.process.stderr.read().strip()
-        except OSError:
+            self._stderr_file.flush()
+            self._stderr_file.seek(0)
+            return self._stderr_file.read().strip()
+        except (OSError, ValueError):
             return ""
 
     def close(self) -> None:
         """Stop the worker when the parent process exits or the test resets it."""
         with self._lock:
-            if self.process.poll() is not None:
-                return
-            self.process.terminate()
             try:
-                self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
-                self.process.wait()
+                if self.process.poll() is None:
+                    self.process.terminate()
+                    try:
+                        self.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.process.kill()
+                        self.process.wait()
+            finally:
+                self._stderr_file.close()
 
 
 _B1_WORKER: _B1Worker | None = None

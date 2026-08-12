@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 import torch
+import torch.nn as nn
 from cobra_pipelines import model_ensemble
 
 
@@ -106,6 +107,30 @@ def test_weighted_aggregation_is_correct() -> None:
     result = model_ensemble.b0()
     assert abs(result["ensemble_mean"] - float(np.mean(expected_ensemble))) < 1e-10
     assert abs(result["ensemble_sum"] - float(np.sum(expected_ensemble))) < 1e-6
+
+
+def test_compiled_models_are_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[nn.Module] = []
+    model_ensemble._COMPILED_MODELS.clear()
+    monkeypatch.setattr(model_ensemble, "_build_mlp", lambda in_features, seed: nn.Identity())
+    monkeypatch.setattr(
+        model_ensemble,
+        "_build_transformer",
+        lambda in_features, seed: nn.Identity(),
+    )
+
+    def fake_compile(model: nn.Module, **kwargs: object) -> nn.Module:
+        calls.append(model)
+        return model
+
+    monkeypatch.setattr(torch, "compile", fake_compile)
+    device = torch.device("cpu")
+
+    first = model_ensemble._get_compiled_models(model_ensemble.IN_FEATURES, 7, device)
+    second = model_ensemble._get_compiled_models(model_ensemble.IN_FEATURES, 7, device)
+
+    assert first is second
+    assert len(calls) == 2
 
 
 @pytest.mark.gpu

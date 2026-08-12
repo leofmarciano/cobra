@@ -239,3 +239,13 @@ the JSON schema documented in the tracer README.
   of the validated evidence set. `./scripts/check.sh --ci` passes with 199
   tests and 9 GPU tests deselected. Next: commit/push and monitor CI/Devin;
   CodeQL and release/publish gate findings remain owner-controlled.
+
+- [2026-08-11][executor PR #45 review follow-up 8] Added failing-first tests
+  and fixes for exclusive nested recorder durations, suppression/filtering of
+  recorder-internal Torch metadata reads, explicit CV synthetic-generation and
+  postprocessing boundaries, cached compiled MLP/Transformer/ResNet models,
+  and persistent-worker stderr diagnostics via a non-blocking temporary file.
+  Regenerated the three tracer reports and findings memo: 88 parquet, 346
+  model, and 1,899 CV events. `./scripts/check.sh --ci` passes with 205 tests
+  and 9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL
+  upload and release/publish gate findings remain owner-controlled.

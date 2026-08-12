@@ -10,7 +10,10 @@ from __future__ import annotations
 import time
 
 import pytest
+import torch
 from cobra_pipelines import cv_preprocess_inference_postprocess
+from tracer.handles import handle_for
+from tracer.session import trace
 
 
 @pytest.mark.gpu
@@ -58,6 +61,55 @@ def test_preprocessing_is_cpu_bound() -> None:
     assert preprocess_time > 1e-4, (
         f"Preprocessing took only {preprocess_time:.6f}s — expected measurably CPU-bound work"
     )
+
+
+def test_trace_records_synthetic_image_generation_boundary() -> None:
+    with trace(enable_pandas=False, enable_torch=False) as session:
+        images = cv_preprocess_inference_postprocess._generate_synthetic_images(2, 7)
+
+    event = next(
+        event for event in session.events if event.op.endswith("synthetic_image_generation")
+    )
+    assert handle_for(images[0]) in event.output_handles
+
+
+def test_trace_records_cv_postprocessing_boundary() -> None:
+    with trace(enable_pandas=False, enable_numpy=False) as session:
+        logits = torch.randn(2, 1000)
+        cv_preprocess_inference_postprocess._postprocess(logits, top_k=1, threshold=0.01)
+
+    event = next(event for event in session.events if event.op.endswith("cv.postprocess"))
+    assert handle_for(logits) in event.input_handles
+
+
+def test_compiled_resnet_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
+    from cobra_pipelines import _compile_env
+
+    class FakeModel(torch.nn.Module):
+        def forward(self, value: torch.Tensor) -> torch.Tensor:
+            return value
+
+    calls: list[torch.nn.Module] = []
+    cv_preprocess_inference_postprocess._COMPILED_RESNETS.clear()
+    monkeypatch.setattr(_compile_env, "ensure_nvcc_in_path", lambda: None)
+    monkeypatch.setattr(
+        cv_preprocess_inference_postprocess.models,
+        "resnet18",
+        lambda weights: FakeModel(),
+    )
+
+    def fake_compile(model: torch.nn.Module, **kwargs: object) -> torch.nn.Module:
+        calls.append(model)
+        return model
+
+    monkeypatch.setattr(torch, "compile", fake_compile)
+    device = torch.device("cpu")
+
+    first = cv_preprocess_inference_postprocess._get_compiled_resnet18(device)
+    second = cv_preprocess_inference_postprocess._get_compiled_resnet18(device)
+
+    assert first is second
+    assert len(calls) == 1
 
 
 @pytest.mark.gpu
