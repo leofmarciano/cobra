@@ -46,19 +46,20 @@ class TracedArray(np.ndarray):
         start_ns = session.clock()
         result = func(*raw_args, **raw_kwargs)
         end_ns = session.clock()
+        wrapped_result = _wrap(result)
 
         op = getattr(func, "__module__", "numpy") + "." + getattr(func, "__name__", str(func))
         session.record(
             "numpy",
             op,
-            args=raw_args,
-            kwargs=raw_kwargs,
-            result=result,
+            args=args,
+            kwargs=kwargs,
+            result=wrapped_result,
             start_ns=start_ns,
             end_ns=end_ns,
             extra_metadata={"mutates_inputs": raw_kwargs.get("out") is not None},
         )
-        return _wrap(result)
+        return wrapped_result
 
     def __array_ufunc__(
         self,
@@ -85,20 +86,21 @@ class TracedArray(np.ndarray):
         start_ns = session.clock()
         result = operation(*raw_inputs, **raw_kwargs)
         end_ns = session.clock()
+        wrapped_result = _wrap(result)
         op = f"numpy.{ufunc.__name__}"
         if method != "__call__":
             op = f"{op}.{method}"
         session.record(
             "numpy",
             op,
-            args=raw_inputs,
-            kwargs=raw_kwargs,
-            result=result,
+            args=inputs,
+            kwargs=kwargs,
+            result=wrapped_result,
             start_ns=start_ns,
             end_ns=end_ns,
             extra_metadata={"mutates_inputs": raw_kwargs.get("out") is not None},
         )
-        return _wrap(result)
+        return wrapped_result
 
 
 def _unwrap(value: Any) -> Any:

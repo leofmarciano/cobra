@@ -40,6 +40,8 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
     edges: set[tuple[int, int, str]] = set()
     last_producer: dict[str, int] = {}
     readers_since_write: dict[str, set[int]] = {}
+    last_logical_producer: dict[str, int] = {}
+    logical_readers_since_write: dict[str, set[int]] = {}
 
     for event in events:
         eid = event.id
@@ -67,6 +69,26 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
             last_producer[handle] = eid
             readers_since_write.pop(handle, None)
 
+        logical_inputs = _logical_handles(event, "logical_input_handles")
+        logical_outputs = _logical_handles(event, "logical_output_handles")
+        for handle in logical_inputs:
+            producer = last_logical_producer.get(handle)
+            if producer is not None and producer != eid:
+                edges.add((producer, eid, "data"))
+            logical_readers_since_write.setdefault(handle, set()).add(eid)
+
+        for handle in logical_outputs:
+            if handle in logical_inputs and not mutates_inputs:
+                continue
+            previous = last_logical_producer.get(handle)
+            if previous is not None and previous != eid:
+                edges.add((previous, eid, "order"))
+            for reader in logical_readers_since_write.get(handle, set()):
+                if reader != eid:
+                    edges.add((reader, eid, "order"))
+            last_logical_producer[handle] = eid
+            logical_readers_since_write.pop(handle, None)
+
     _add_opaque_ordering_edges(events, edges)
 
     incoming: set[int] = set()
@@ -87,6 +109,14 @@ def build_dag(events: Iterable[Event]) -> dict[str, Any]:
         "roots": roots,
         "leaves": leaves,
     }
+
+
+def _logical_handles(event: Event, key: str) -> tuple[str, ...]:
+    """Read logical lineage metadata, falling back for synthetic events."""
+    value = event.metadata.get(key)
+    if isinstance(value, list | tuple):
+        return tuple(str(handle) for handle in value)
+    return event.input_handles if key == "logical_input_handles" else event.output_handles
 
 
 def _node_from_event(event: Event) -> dict[str, Any]:

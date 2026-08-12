@@ -221,3 +221,11 @@ the JSON schema documented in the tracer README.
   regenerated the three tracer reports plus findings memo. `./scripts/check.sh
   --ci` passes with 193 tests and 9 GPU tests deselected. Next: commit/push and
   monitor CI and Devin; Advanced Security remains owner-controlled.
+
+- [2026-08-11][executor PR #45 review follow-up 6] Added failing-first tests
+  and fixes for logical view lineage, generation-aware pandas/NumPy handles,
+  exact integral-vs-float correctness, and empty tracer analysis. Updated the
+  tracer README, regenerated reports/findings, and verified that view consumers
+  retain producer lineage. `./scripts/check.sh --ci` passes with 196 tests and
+  9 GPU tests deselected. Next: commit/push and monitor CI/Devin; CodeQL and
+  release/publish security gate findings remain owner-controlled.

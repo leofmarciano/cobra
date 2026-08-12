@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import gc
+
 import numpy as np
 import pandas as pd
 import torch
-from tracer.handles import collect_handles, handle_for, tensor_storage_identity
+from tracer.handles import (
+    _generation_handle,
+    collect_handles,
+    handle_for,
+    logical_handle_for,
+    tensor_storage_identity,
+)
 
 
 def test_scalar_has_no_handle() -> None:
@@ -18,6 +26,7 @@ def test_tensor_handle_shared_across_views() -> None:
     t = torch.zeros(4)
     view = t.view(-1)
     assert handle_for(t) == handle_for(view)
+    assert logical_handle_for(t) != logical_handle_for(view)
 
 
 def test_tensor_handle_differs_across_storages() -> None:
@@ -40,6 +49,21 @@ def test_dataframe_handle_is_object_identity() -> None:
     assert handle_for(df) == handle_for(df)
     other = pd.DataFrame({"a": [1, 2, 3]})
     assert handle_for(df) != handle_for(other)
+
+
+def test_generation_handle_changes_after_recycled_identity() -> None:
+    class Identity:
+        pass
+
+    first = Identity()
+    first_handle = _generation_handle(first, "test", identity_key=123)
+    del first
+    gc.collect()
+
+    second = Identity()
+    second_handle = _generation_handle(second, "test", identity_key=123)
+
+    assert second_handle != first_handle
 
 
 def test_ndarray_handle_shared_with_view() -> None:

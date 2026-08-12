@@ -42,8 +42,10 @@ libraries:
 Each recorded `Event` (`tracer.events.Event`) captures: op name, an
 args/kwargs summary, value-identity handles for inputs/outputs
 (`tracer.handles`, keyed by a generation-aware live tensor storage identity /
-dataframe object id / ndarray base id — so views share a handle while recycled
-tensor allocations do not alias), per-value
+dataframe lifetime / ndarray base lifetime — so storage views share a handle
+while recycled objects do not alias). Events also carry generation-aware
+logical-value handles in metadata, keeping a read-only view's producer on the
+dependency path without treating that view as a storage mutation), per-value
 metadata (dtype, shape/schema, device, storage id —
 `tracer.metadata.describe`), wall-clock timing (`time.perf_counter_ns`),
 thread id, and a best-effort call-site source location.
@@ -138,7 +140,8 @@ outlive `experimental/`.
 
 Edge kinds:
 
-* `data` — the consumer reads a handle last produced by the source event.
+* `data` — the consumer reads a storage or logical-value handle last produced
+  by the source event.
 * `order` — either the source and target mutate the same storage identity, or
   an unknown-effect `opaque` node is being fenced against its program-order
   neighbors (plan §6.3 spirit).

@@ -99,6 +99,48 @@ def test_read_only_alias_does_not_become_storage_producer() -> None:
     assert (1, 2, "order") not in edges
 
 
+def test_logical_view_lineage_orders_view_consumer() -> None:
+    events = [
+        Event(
+            id=0,
+            kind="torch",
+            op="torch.zeros",
+            args_summary="",
+            output_handles=("storage:0",),
+            metadata={"logical_output_handles": ["logical:0"]},
+        ),
+        Event(
+            id=1,
+            kind="torch",
+            op="torch.Tensor.permute",
+            args_summary="",
+            input_handles=("storage:0",),
+            output_handles=("storage:0",),
+            metadata={
+                "logical_input_handles": ["logical:0"],
+                "logical_output_handles": ["logical:view"],
+            },
+        ),
+        Event(
+            id=2,
+            kind="torch",
+            op="torch.Tensor.to",
+            args_summary="",
+            input_handles=("storage:0",),
+            output_handles=("storage:1",),
+            metadata={
+                "logical_input_handles": ["logical:view"],
+                "logical_output_handles": ["logical:1"],
+            },
+        ),
+    ]
+
+    edges = _edges(build_dag(events))
+
+    assert (0, 1, "data") in edges
+    assert (1, 2, "data") in edges
+
+
 def test_descriptor_attribute_read_does_not_advance_storage_producer() -> None:
     events = [
         _ev(0, "torch", "torch.zeros", outputs=("tensor:0",)),

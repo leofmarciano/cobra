@@ -3,7 +3,7 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 5 in progress (executor session)
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 6 in progress (executor session)
 
 ## Now
 
@@ -12,9 +12,9 @@
 | Milestone | M0 — Thesis validation |
 | Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
 | Sprint status | `needs_validation` |
-| Current task | Push the six Devin review fixes; monitor CI, CodeQL, and Devin approval |
+| Current task | Push the Devin lineage/handle/correctness fixes; monitor CI and Devin approval |
 | Branch | `sprint/S03-disposable-tracer` |
-| Next action | Commit/push the tracer, worker-protocol, evidence, and report fixes; monitor the new workflow run |
+| Next action | Commit/push the tracer and harness fixes; monitor the new workflow run and review threads |
 
 ## Blockers
 
@@ -22,6 +22,10 @@
   `security_and_analysis` setting; enabling it is an owner-controlled gate.
   The workflow keeps analysis source-backed and documents the required
   `upload: true` follow-up.
+- Devin flagged that release/build publishing is now controlled by repository
+  variables rather than an unconditional false gate. Changing that policy or
+  enabling trusted publishing requires owner approval and a secrets review;
+  this session leaves publishing disabled in practice.
 
 ## Human-input queue
 
@@ -33,6 +37,8 @@ Items an executor needs from the owner; answer by editing this list.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
 - [ ] Enable Advanced Security for `leofmarciano/cobra`; then set
       `.github/workflows/security.yml` to `upload: true` and rerun Security.
+- [ ] Approve the release/build publishing gate policy and complete the
+      trusted-publishing/secrets review before enabling those workflows.
 - [x] ~~Linux + NVIDIA GPU host details~~ — resolved 2026-08-11: this WSL
       session has direct access to an NVIDIA GeForce RTX 3080 (driver 591.86,
       compute cap 8.6, 10 GiB). CUDA toolkit presence verified by T0 (see
@@ -60,11 +66,13 @@ Items an executor needs from the owner; answer by editing this list.
 | 2026-08-11 | S03 executor (PR #45 review follow-up 3) | Added package CI coverage/Linux markers, ndarray lineage, mutation-aware/frontier-fenced DAG edges, secure worker I/O, and fresh benchmark/tracer evidence. `./scripts/check.sh --ci`, 48 tracer tests, and 187 tests with 9 GPU cases deselected pass. |
 | 2026-08-11 | S03 executor (PR #45 CI follow-up 4) | Diagnosed the remote actionlint/pipx incompatibility and bumped CI's uv pin to 0.9.17. Local config/docs/shell lint passes; CodeQL upload remains owner-controlled. |
 | 2026-08-11 | S03 executor (PR #45 review follow-up 5) | Added TDD fixes for the pandas filter/reset chain, NumPy ufuncs and DataFrame construction, pandas→Torch conversion, descriptor mutation classification, and per-run persistent-worker configuration. Pointed the raw evidence manifest at `c9c1a89`; regenerated tracer reports/findings. `./scripts/check.sh --ci` passes: 193 tests, 9 GPU deselected. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 6) | Added failing-first fixes for logical view lineage, generation-aware pandas/NumPy handles, exact integral-vs-float correctness, and empty-trace analysis. Regenerated reports/findings and updated tracer docs. `./scripts/check.sh --ci` passes: 196 tests, 9 GPU deselected; CodeQL and release/publish gate findings remain owner-controlled. |
 
 ## Notes for the next session
 
 - S03 tasks T1–T4 are complete, but PR #45 review follow-up remains open until
-  Devin approves the final head; the CodeQL upload gate remains owner-controlled.
+  Devin approves the final head; CodeQL upload and release/publish gate
+  findings remain owner-controlled.
   Branch `sprint/S03-disposable-tracer` contains the corrected reports, findings
   memo, fresh raw samples, and review/CI fixes.
 - Next prompt is `P1-validate.md`: an independent Validator session must

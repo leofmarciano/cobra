@@ -37,6 +37,35 @@ except ImportError:  # pragma: no cover
 # while the weak reference lets simultaneously-live views retain one handle.
 _tensor_storage_generations: dict[int, tuple[weakref.ReferenceType[Any], int]] = {}
 _tensor_storage_lock = threading.Lock()
+_object_generations: dict[tuple[str, int], tuple[weakref.ReferenceType[Any], int]] = {}
+_object_generation_lock = threading.Lock()
+
+
+def _generation_handle(
+    value: Any,
+    namespace: str,
+    *,
+    identity_key: int | None = None,
+) -> str:
+    """Return a lifetime-aware handle for a weak-referenceable Python object."""
+    key = id(value) if identity_key is None else identity_key
+    try:
+        reference = weakref.ref(value)
+    except TypeError:
+        return f"{namespace}:{key}"
+
+    with _object_generation_lock:
+        previous = _object_generations.get((namespace, key))
+        if previous is None:
+            generation = 0
+        elif previous[0]() is value:
+            generation = previous[1]
+        else:
+            # The old object is normally dead here; increment defensively even
+            # if an unexpected live identity collision is observed.
+            generation = previous[1] + 1
+        _object_generations[(namespace, key)] = (reference, generation)
+    return f"{namespace}:{key}:{generation}"
 
 
 def tensor_storage_identity(value: Any) -> str | None:
@@ -77,18 +106,35 @@ def handle_for(value: Any) -> str | None:
         identity = tensor_storage_identity(value)
         return f"tensor:{identity}" if identity is not None else f"tensor:obj:{id(value)}"
     if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
-        return f"pandas:{id(value)}"
+        return _generation_handle(value, "pandas")
     if np is not None and isinstance(value, np.ndarray):
         base = value
         seen: set[int] = set()
         while isinstance(base.base, np.ndarray) and id(base) not in seen:
             seen.add(id(base))
             base = base.base
-        return f"ndarray:{id(base)}"
+        return _generation_handle(base, "ndarray")
     if isinstance(value, list | tuple | dict | set) and not _is_scalar_container(value):
         return f"opaque:{id(value)}"
     if hasattr(value, "__dict__") and not isinstance(value, str | bytes | int | float | bool):
         return f"opaque:{id(value)}"
+    return None
+
+
+def logical_handle_for(value: Any) -> str | None:
+    """Return a lifetime-aware handle for the logical Python value itself.
+
+    Storage handles intentionally collapse tensor/array views so mutations can
+    be ordered. Logical handles keep a view's value lineage distinct, allowing
+    a consumer of ``x.permute(...)`` to depend on the permute event without
+    turning the shared storage into a new mutation producer.
+    """
+    if torch is not None and isinstance(value, torch.Tensor):
+        return _generation_handle(value, "logical:tensor")
+    if pd is not None and isinstance(value, pd.DataFrame | pd.Series):
+        return _generation_handle(value, "logical:pandas")
+    if np is not None and isinstance(value, np.ndarray):
+        return _generation_handle(value, "logical:ndarray")
     return None
 
 
@@ -116,6 +162,29 @@ def collect_handles(values: Any) -> tuple[str, ...]:
         if h is not None and h not in seen:
             seen.add(h)
             handles.append(h)
+
+    visit(values)
+    return tuple(handles)
+
+
+def collect_logical_handles(values: Any) -> tuple[str, ...]:
+    """Recursively collect logical value handles from nested arguments."""
+    handles: list[str] = []
+    seen: set[str] = set()
+
+    def visit(value: Any) -> None:
+        if isinstance(value, Mapping):
+            for nested in value.values():
+                visit(nested)
+            return
+        if isinstance(value, list | tuple):
+            for nested in value:
+                visit(nested)
+            return
+        handle = logical_handle_for(value)
+        if handle is not None and handle not in seen:
+            seen.add(handle)
+            handles.append(handle)
 
     visit(values)
     return tuple(handles)

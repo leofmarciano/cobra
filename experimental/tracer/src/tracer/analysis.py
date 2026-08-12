@@ -111,6 +111,8 @@ def _longest_path(
                 dist[s] = candidate
                 prev[s] = nid
 
+    if not dist:
+        return 0, []
     end = max(dist, key=dist.get)
     path: list[int] = []
     cur: int | None = end

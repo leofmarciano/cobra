@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from tracer.events import Event, EventKind
-from tracer.handles import collect_handles
+from tracer.handles import collect_handles, collect_logical_handles
 from tracer.metadata import describe, summarize_args
 
 _THIS_DIR = str(Path(__file__).resolve().parent)
@@ -63,10 +63,17 @@ class TraceSession:
     ) -> Event:
         """Append and return a new ``Event`` describing one call boundary."""
         kwargs = kwargs or {}
+        input_values = list(args) + list(kwargs.values())
         metadata: dict[str, Any] = {
             "inputs": [describe(a) for a in args],
             "output": describe(result),
         }
+        logical_inputs = collect_logical_handles(input_values)
+        logical_outputs = collect_logical_handles(result)
+        if logical_inputs:
+            metadata["logical_input_handles"] = logical_inputs
+        if logical_outputs:
+            metadata["logical_output_handles"] = logical_outputs
         if extra_metadata:
             metadata.update(extra_metadata)
 
@@ -75,7 +82,7 @@ class TraceSession:
             kind=kind,
             op=op,
             args_summary=summarize_args(args, kwargs),
-            input_handles=collect_handles(list(args) + list(kwargs.values())),
+            input_handles=collect_handles(input_values),
             output_handles=collect_handles(result),
             metadata=metadata,
             start_ns=start_ns,

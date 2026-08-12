@@ -152,6 +152,7 @@ class TestBuildOracle:
         )
 
         assert oracle({"n_rows": 100_001}) is False
+        assert oracle({"n_rows": 100_000.0}) is False
 
     def test_approx_equal_nan_respects_manifest_setting(
         self, monkeypatch: pytest.MonkeyPatch

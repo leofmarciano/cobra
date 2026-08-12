@@ -136,9 +136,9 @@ def _approx_equal(
             for e, a in zip(expected, actual, strict=False)
         )
 
-    if isinstance(expected, int) and isinstance(actual, int):
-        # Counts, IDs, and other integral leaves are never approximate.
-        return expected == actual
+    if isinstance(expected, int) or isinstance(actual, int):
+        # Integral leaves must retain their integral type and exact value.
+        return isinstance(expected, int) and isinstance(actual, int) and expected == actual
 
     if isinstance(expected, int | float) and isinstance(actual, int | float):
         # Use tolerance for real numbers; bools and strings are handled above.

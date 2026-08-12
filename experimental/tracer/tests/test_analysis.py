@@ -41,6 +41,16 @@ def test_chain_critical_path_is_sum() -> None:
     assert result["critical_path_node_ids"] == [0, 1, 2]
 
 
+def test_empty_trace_produces_empty_analysis() -> None:
+    result = analyze(build_dag([]))
+
+    assert result["total_work_ns"] == 0
+    assert result["critical_path_ns"] == 0
+    assert result["critical_path_node_ids"] == []
+    assert result["top5_critical_ops"] == []
+    assert result["parallel_regions"] == []
+
+
 def test_fan_out_fan_in_speedup() -> None:
     events = [
         _ev(0, "torch", "input", outputs=("t:0",), duration_ns=5),
