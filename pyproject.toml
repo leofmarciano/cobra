@@ -41,7 +41,7 @@ dev = [
     "yamllint>=1.35,<1.36",
     "pre-commit>=4.0,<5",
     "deptry>=0.25,<0.26",
-    "vulture>=2.14,<2.15",
+    "vulture>=2.14,<2.17",
     "types-pyyaml>=6.0,<7",
     "cobra-bench",
     "cobra-pipelines",
