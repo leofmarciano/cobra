@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cobra-pipelines"
+version = "0.0.1.dev0"
+description = "Cobra phase-0 baseline pipeline workloads (plan §20.3-D)."
+readme = "README.md"
+license = { text = "Apache-2.0 WITH LLVM-exception" }
+requires-python = "==3.13.*"
+authors = [
+    { name = "The Cobra Project Authors" },
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "numpy==2.4.6",
+    "pandas==2.3.3",
+    "pyarrow==23.0.1",
+    "torch==2.13.0",
+    "torchvision==0.28.0",
+    "nvidia-cuda-nvcc==13.0.88; sys_platform == 'linux'",
+    "cudf-cu13==26.6.0; sys_platform == 'linux'",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cobra_pipelines = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*", "pandas", "pandas.*", "pyarrow", "pyarrow.*", "torch", "torch.*", "torchvision", "torchvision.*", "cudf", "cudf.*"]
+ignore_missing_imports = true

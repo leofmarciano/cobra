@@ -1,0 +1,33 @@
+{
+  "host": {
+    "hostname_alias": "DESKTOP-P3JA7HS",
+    "os": "Linux 6.6.87.2-microsoft-standard-WSL2",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "cpu": "Intel(R) Core(TM) i9-10900F CPU @ 2.80GHz",
+    "numa_nodes": 1,
+    "memory_gb": 15.62,
+    "manual": false
+  },
+  "gpu": {
+    "status": "present",
+    "gpu_name": "NVIDIA GeForce RTX 3080",
+    "driver": "591.86",
+    "compute_capability": "8.6",
+    "gpu_uuid_hash": "d568fd47914b117e",
+    "clocks_policy": "0x0000000000000001",
+    "power_limit_watts": 320.0,
+    "persistence_mode": true,
+    "mig": "[N/A]",
+    "manual": false
+  },
+  "software": {
+    "python": "3.13.12",
+    "manual": false,
+    "pytorch": "2.13.0",
+    "triton": "3.7.1",
+    "pandas": "2.3.3",
+    "cudf": "26.6.0",
+    "numpy": "2.4.6",
+    "pyarrow": "23.0.1"
+  }
+}

@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UV_VERSION: "0.7.14"
+  UV_VERSION: "0.9.17"
   NODE_VERSION: "22"
 
 jobs:
@@ -101,7 +101,7 @@ jobs:
         run: bash scripts/ci/config-lint.sh
 
       - name: Lint GitHub Actions
-        uses: raven-actions/actionlint@v1
+        uses: raven-actions/actionlint@v2.2.0
         with:
           fail-on-error: true
 
@@ -127,7 +127,8 @@ jobs:
   build-smoke:
     name: Build smoke
     runs-on: ubuntu-latest
-    if: false # enable in S06 when CMakeLists.txt lands
+    # Keep opt-in until the native build definition lands in S06.
+    if: ${{ vars.COBRA_ENABLE_BUILD == 'true' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

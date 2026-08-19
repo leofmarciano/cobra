@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import platform
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -170,6 +171,22 @@ class TestCollectSoftwareInfo:
         for key in ("pytorch", "triton", "pandas", "cudf", "numpy", "pyarrow"):
             assert key in info
             assert info[key] is None or isinstance(info[key], str)
+
+    def test_reports_versioned_cudf_distribution(self) -> None:
+        info = collect_software_info()
+        if info["cudf"] is not None:
+            assert info["cudf"] == "26.6.0"
+
+    def test_falls_back_to_other_cudf_distribution_variants(self) -> None:
+        def fake_version(name: str) -> str:
+            if name == "cudf-cu12":
+                return "12.8.0"
+            raise PackageNotFoundError(name)
+
+        with patch("cobra_bench.doctor.pkg_version", side_effect=fake_version):
+            info = collect_software_info()
+
+        assert info["cudf"] == "12.8.0"
 
 
 # ---------------------------------------------------------------------------

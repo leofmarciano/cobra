@@ -1,0 +1,139 @@
+{
+  "metric": "wall_time_ns",
+  "confidence": 0.95,
+  "n_bootstrap": 10000,
+  "seed": 42,
+  "workloads": [
+    {
+      "workload": "cv_preprocess_inference_postprocess",
+      "metric": "wall_time_ns",
+      "baseline_variant": "b0",
+      "variants": [
+        {
+          "workload": "cv_preprocess_inference_postprocess",
+          "variant": "b0",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 26343482.0,
+          "p95": 31814748.149999995,
+          "p99": 33251221.650000002,
+          "cv": 0.07696911533622443,
+          "ci_low": 25773366.0,
+          "ci_high": 27060571.5,
+          "speedup": 1.0,
+          "speedup_ci_low": 1.0,
+          "speedup_ci_high": 1.0,
+          "significant": false
+        },
+        {
+          "workload": "cv_preprocess_inference_postprocess",
+          "variant": "b1",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 25743270.5,
+          "p95": 27193574.25,
+          "p99": 27347576.64,
+          "cv": 0.035183661292609435,
+          "ci_low": 25251884.5,
+          "ci_high": 26013137.0,
+          "speedup": 1.02331527767616,
+          "speedup_ci_low": 0.9983011922912163,
+          "speedup_ci_high": 1.0638312235833831,
+          "significant": false
+        }
+      ],
+      "geomean_speedup": 1.02331527767616,
+      "input_fingerprint": "cv-preprocess-inference-postprocess-v0"
+    },
+    {
+      "workload": "model_ensemble",
+      "metric": "wall_time_ns",
+      "baseline_variant": "b0",
+      "variants": [
+        {
+          "workload": "model_ensemble",
+          "variant": "b0",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 8255345.0,
+          "p95": 8736428.4,
+          "p99": 8836511.65,
+          "cv": 0.038453534609707844,
+          "ci_low": 8058635.5,
+          "ci_high": 8418392.5,
+          "speedup": 1.0,
+          "speedup_ci_low": 1.0,
+          "speedup_ci_high": 1.0,
+          "significant": false
+        },
+        {
+          "workload": "model_ensemble",
+          "variant": "b1",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 8685717.5,
+          "p95": 9715992.399999999,
+          "p99": 9923943.57,
+          "cv": 0.06071949265203185,
+          "ci_low": 8510137.5,
+          "ci_high": 9132417.5,
+          "speedup": 0.950450552876029,
+          "speedup_ci_low": 0.9013822405100927,
+          "speedup_ci_high": 0.9773602319195184,
+          "significant": true
+        }
+      ],
+      "geomean_speedup": 0.950450552876029,
+      "input_fingerprint": "model-ensemble-v0"
+    },
+    {
+      "workload": "parquet_feature_inference",
+      "metric": "wall_time_ns",
+      "baseline_variant": "b0",
+      "variants": [
+        {
+          "workload": "parquet_feature_inference",
+          "variant": "b0",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 25064957.0,
+          "p95": 27108276.549999997,
+          "p99": 27724501.41,
+          "cv": 0.040454335657899104,
+          "ci_low": 24496552.5,
+          "ci_high": 25498514.0,
+          "speedup": 1.0,
+          "speedup_ci_low": 1.0,
+          "speedup_ci_high": 1.0,
+          "significant": false
+        },
+        {
+          "workload": "parquet_feature_inference",
+          "variant": "b1",
+          "metric": "wall_time_ns",
+          "n_samples": 30,
+          "n_missing": 0,
+          "median": 52390798.5,
+          "p95": 65815691.04999998,
+          "p99": 68770774.23,
+          "cv": 0.09731551249743733,
+          "ci_low": 50914558.5,
+          "ci_high": 54746933.5,
+          "speedup": 0.47842288565233454,
+          "speedup_ci_low": 0.4550358017281191,
+          "speedup_ci_high": 0.49506886663679067,
+          "significant": true
+        }
+      ],
+      "geomean_speedup": 0.47842288565233454,
+      "input_fingerprint": "parquet-feature-inference-v0"
+    }
+  ],
+  "suite_geomean_speedup": 0.7749082964411549,
+  "phase": "warm"
+}

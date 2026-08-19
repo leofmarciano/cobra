@@ -1,0 +1,110 @@
+"""Unit tests for tracer.handles (S03-T1)."""
+
+from __future__ import annotations
+
+import gc
+
+import numpy as np
+import pandas as pd
+import torch
+from tracer.handles import (
+    _generation_handle,
+    collect_handles,
+    handle_for,
+    logical_handle_for,
+    tensor_storage_identity,
+)
+
+
+def test_scalar_has_no_handle() -> None:
+    assert handle_for(1) is None
+    assert handle_for("hello") is None
+    assert handle_for(None) is None
+
+
+def test_tensor_handle_shared_across_views() -> None:
+    t = torch.zeros(4)
+    view = t.view(-1)
+    assert handle_for(t) == handle_for(view)
+    assert logical_handle_for(t) != logical_handle_for(view)
+
+
+def test_tensor_handle_differs_across_storages() -> None:
+    a = torch.zeros(4)
+    b = torch.zeros(4)
+    assert handle_for(a) != handle_for(b)
+
+
+def test_tensor_storage_identity_tracks_allocation_lifetime() -> None:
+    tensor = torch.zeros(4)
+    view = tensor.view(-1)
+    other = torch.zeros(4)
+
+    assert tensor_storage_identity(tensor) == tensor_storage_identity(view)
+    assert tensor_storage_identity(tensor) != tensor_storage_identity(other)
+
+
+def test_dataframe_handle_is_object_identity() -> None:
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    assert handle_for(df) == handle_for(df)
+    other = pd.DataFrame({"a": [1, 2, 3]})
+    assert handle_for(df) != handle_for(other)
+
+
+def test_generation_handle_changes_after_recycled_identity() -> None:
+    class Identity:
+        pass
+
+    first = Identity()
+    first_handle = _generation_handle(first, "test", identity_key=123)
+    del first
+    gc.collect()
+
+    second = Identity()
+    second_handle = _generation_handle(second, "test", identity_key=123)
+
+    assert second_handle != first_handle
+
+
+def test_weakrefable_opaque_handle_includes_a_generation() -> None:
+    class Opaque:
+        pass
+
+    value = Opaque()
+    handle = handle_for(value)
+
+    assert handle is not None
+    assert handle.startswith("opaque:")
+    assert handle.count(":") == 2
+
+
+def test_non_weakrefable_opaque_container_has_no_recycled_id_handle() -> None:
+    assert handle_for([object()]) is None
+
+
+def test_ndarray_handle_shared_with_view() -> None:
+    arr = np.zeros(4)
+    view = arr[:2]
+    assert handle_for(arr) == handle_for(view)
+
+
+def test_ndarray_handle_shared_across_nested_views() -> None:
+    arr = np.zeros(4)
+    nested = arr[:3].view()
+    assert handle_for(arr) == handle_for(nested)
+
+
+def test_collect_handles_flattens_and_filters() -> None:
+    t = torch.zeros(2)
+    handles = collect_handles([1, "x", t, None])
+    assert handles == (handle_for(t),)
+
+
+def test_collect_handles_recurses_nested_containers_and_mappings() -> None:
+    first = torch.zeros(2)
+    second = torch.ones(2)
+    values = {"batch": [(first,)], "other": {"tensor": second}}
+
+    handles = collect_handles(values)
+
+    assert handles == (handle_for(first), handle_for(second))

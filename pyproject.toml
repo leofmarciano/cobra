@@ -44,6 +44,8 @@ dev = [
     "vulture>=2.14,<2.15",
     "types-pyyaml>=6.0,<7",
     "cobra-bench",
+    "cobra-pipelines",
+    "cobra-tracer",
 ]
 
 [tool.setuptools.packages.find]
@@ -53,10 +55,12 @@ where = ["python"]
 default-groups = ["dev"]
 
 [tool.uv.workspace]
-members = ["benchmarks/harness"]
+members = ["benchmarks/harness", "benchmarks/pipelines", "experimental/tracer"]
 
 [tool.uv.sources]
 cobra-bench = { workspace = true }
+cobra-pipelines = { workspace = true }
+cobra-tracer = { workspace = true }
 
 [tool.ruff]
 target-version = "py313"
@@ -97,3 +101,6 @@ show_error_codes = true
 [tool.pytest.ini_options]
 testpaths = ["test/python"]
 python_files = ["test_*.py"]
+markers = [
+    "gpu: requires CUDA, GPU execution, or downloaded pretrained model assets",
+]

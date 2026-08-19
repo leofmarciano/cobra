@@ -3,25 +3,29 @@
 > Read me first. Update me last (every session). Keep me under ~80 lines:
 > history belongs in sprint Session logs, not here.
 
-**Last updated:** 2026-08-11 — S02 booted; blocked on Linux + NVIDIA GPU host details
+**Last updated:** 2026-08-11 — S03 PR #45 review follow-up 10 ready for push (executor session)
 
 ## Now
 
-|| Field | Value |
-|---|---|---|
-|| Milestone | M0 — Thesis validation |
-|| Active sprint | S02 — Baseline workloads & B0/B1 report (`orchestration/sprints/S02-baseline-workloads.md`) |
-|| Sprint status | `blocked` |
-|| Current task | T0 — Record the GPU host |
-|| Branch | `sprint/S02-baseline-workloads` |
-|| Next action | Provide Linux + NVIDIA GPU host details, then rerun `orchestration/prompts/P0-execute.md` |
+| Field | Value |
+|---|---|
+| Milestone | M0 — Thesis validation |
+| Active sprint | S03 — Disposable whole-program tracer (`orchestration/sprints/S03-disposable-tracer.md`) |
+| Sprint status | `needs_validation` |
+| Current task | Push regenerated baseline evidence; monitor CI and Devin approval |
+| Branch | `sprint/S03-disposable-tracer` |
+| Next action | Monitor the new workflow run and review threads after the follow-up 10 push |
 
 ## Blockers
 
-- S02-T0 cannot run on this macOS orchestration host. Need Linux + NVIDIA GPU
-  host access (hostname/SSH, GPU model, driver version, CUDA toolkit) to run
-  `cobra-bench doctor --strict`, record `artifacts/environment/primary-host.json`,
-  and fill the Environment table below.
+- GitHub CodeQL upload is disabled because this private repository reports no
+  `security_and_analysis` setting; enabling it is an owner-controlled gate.
+  The workflow keeps analysis source-backed and documents the required
+  `upload: true` follow-up.
+- Devin flagged that release/build publishing is now controlled by repository
+  variables rather than an unconditional false gate. Changing that policy or
+  enabling trusted publishing requires owner approval and a secrets review;
+  this session leaves publishing disabled in practice.
 
 ## Human-input queue
 
@@ -31,40 +35,57 @@ Items an executor needs from the owner; answer by editing this list.
       Orca automation environment authenticates fine; the "Not logged in"
       was an artifact of a sandboxed review shell only. Not a blocker.
 - [ ] Security contact email for `SECURITY.md` (needed in S00-T1)
-- [ ] Linux + NVIDIA GPU host details (hostname/SSH access, GPU model, driver
-      version, CUDA toolkit) — blocking S02-T0. Owner confirmed hardware exists
-      (2026-08-10); access details still needed.
+- [ ] Enable Advanced Security for `leofmarciano/cobra`; then set
+      `.github/workflows/security.yml` to `upload: true` and rerun Security.
+- [ ] Approve the release/build publishing gate policy and complete the
+      trusted-publishing/secrets review before enabling those workflows.
+- [x] ~~Linux + NVIDIA GPU host details~~ — resolved 2026-08-11: this WSL
+      session has direct access to an NVIDIA GeForce RTX 3080 (driver 591.86,
+      compute cap 8.6, 10 GiB). CUDA toolkit presence verified by T0 (see
+      below): no system-wide `nvcc` is installed, but pip wheels
+      (`nvidia-cuda-nvcc-cu13` etc.) provide everything needed.
 
 ## Environment
 
-|| Item | Value |
-|---|---|---|
-|| Orchestration host | macOS (owner laptop) — docs/git only, no native builds |
-|| Dev/bench host | **TBD** — first GPU sprint must record: OS, kernel, CPU, RAM, GPU, driver, CUDA toolkit. Currently blocked waiting for owner-provided access details. |
-|| GPU availability | Confirmed available by owner (2026-08-10); access details pending |
-|| Python toolchain | `uv` (to be pinned in S00) |
-|| Remote | github.com/leofmarciano/cobra (do NOT push without human ask) |
-|| Worker agent | Devin CLI headless (`devin -p`), spawned by `scripts/cobra_orca_loop.py`; default `--permission-mode dangerous` (owner-approved for unattended runs, D-004) |
+| Item | Value |
+|---|---|
+| Orchestration host | WSL2 Ubuntu 24.04.1 LTS (this session) — native builds allowed; GPU available |
+| Dev/bench host | WSL2 Ubuntu 24.04.1 LTS / kernel 6.6.87.2-microsoft-standard-WSL2 / Intel Core i9-10900F (12 vCPU) / 15.62 GiB RAM |
+| GPU availability | NVIDIA GeForce RTX 3080, 10 GiB, driver 591.86, compute cap 8.6 (sm_86); `nvidia-smi` reports max supported CUDA 13.1. System-wide `nvcc` is absent — not required; CUDA 13 toolkit pieces are pulled in as pip wheel deps (`nvidia-cuda-nvcc-cu13`, `nvidia-cuda-runtime-cu13`, ...) |
+| `cobra-bench doctor --strict` | PASSES on this host as of 2026-08-11; report committed at `artifacts/environment/primary-host.json` |
+| Framework version pins (S02-T0) | torch 2.13.0, numpy 2.4.6, pandas 2.3.3, pyarrow 23.0.1, cudf-cu13 26.6.0 — see `support-matrix.yaml` for rationale (cudf-cu13 26.6.0 caps numpy <2.5 and pandas <2.4; verified co-resolvable via `uv pip install --dry-run`) |
+| Python toolchain | `uv` (to be pinned in S00); harness venv runs Python 3.13.12 |
+| Remote | github.com/leofmarciano/cobra (PR #45 push authorized by owner on 2026-08-11) |
+| Worker agent | Devin CLI headless (`devin -p`), spawned by `scripts/cobra_orca_loop.py`; default `--permission-mode dangerous` (owner-approved for unattended runs, D-004) |
 
 ## Last 3 sessions
 
-|| Date | Session | Result |
-|---|---|---|---|
-|| 2026-08-11 | S01 executor (P0), T5+T6 | Implemented full `cobra-bench` CLI (`doctor`, `verify`, `run`, `analyze`, `compare`), `cobra_bench.runner` (entrypoint resolution, oracle factory, warm timing, cold subprocess placeholder, sample recording), `cobra_bench.compare` (threshold check between `summary.json` files), and `cobra_bench.guardrails` (mixed-phase refusal, input-fingerprint consistency, <30 sample warning, `--no-oracle` opt-out with loud warning). Extended manifest/stats for input fingerprints and phase. 34 new TDD tests; `uv run pytest benchmarks/harness -q` (120 passed), `mypy --strict` clean, ruff clean, sprint validation commands green, `./scripts/check.sh` green. T5+T6 checked; sprint `needs_validation`; next is P1. |
-|| 2026-08-11 | S01 Validator (P1) | Validated and closed S01. Re-ran all sprint validation commands, ran `./scripts/check.sh`, and found/fixed two CI gaps so the harness tests and mypy run in CI. Merged `sprint/S01-benchmark-harness` into `main` (9d4ec3d). Closed GitHub issue #2. Updated ROADMAP/STATE/LEARNINGS. Next: S02 T0 — record the Linux + NVIDIA GPU host. |
-|| 2026-08-11 | S02 executor (P0), T0 | Booted S02, created branch `sprint/S02-baseline-workloads` from `main`, read context budget (plan §20.2, §20.3-D, §29 Days 1-10, §2.4, §33.2-33.4). Cannot run `cobra-bench doctor --strict` on macOS (no GPU; strict mode requires GPU metadata per §33.2). Recorded blocker: need owner-provided Linux + NVIDIA GPU host access details. No code changes. |
+| Date | Session | Result |
+|---|---|---|
+| 2026-08-11 | S03 executor (PR #45 review follow-up 8) | Added failing-first fixes for exclusive nested durations, recorder-internal Torch reads, CV generation/postprocess boundaries, compiled-model caching, and persistent-worker stderr diagnostics. Regenerated reports/findings: 88/346/1,899 events across the three workloads. `./scripts/check.sh --ci` passes: 205 tests, 9 GPU deselected; security gates remain owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 9) | Fixed the CI-only tracer overhead regression by caching CUDA availability per session, skipping CUDA runtime queries for CPU values, and reusing tensor storage identities within each event; added a regression test. `./scripts/check.sh --ci` passes: 206 tests, 9 GPU deselected; security gates remain owner-controlled. |
+| 2026-08-11 | S03 executor (PR #45 review follow-up 10) | Added failing-first fixes for dtype-aware tolerance selection, measured revision/environment manifests, and symmetric eager model caches for parquet, model-ensemble, and CV workloads. Regenerated correctness and 180 warm samples from `7b3d6bf`; B1/B0 is 0.478x parquet, 0.950x ensemble, and 1.023x CV. `./scripts/check.sh --ci` passes: 211 tests, 9 GPU deselected; security gates remain owner-controlled. |
 
 ## Notes for the next session
 
-- S01 is merged to `main` and done.
-- S02 is the active sprint (GPU required). T0 is the first task: run
-  `cobra-bench doctor --strict` on the Linux GPU host and fill the Environment
-  table. The owner has confirmed the host exists but details are still needed.
-- The harness has zero Cobra-internal dependencies and measures arbitrary Python
-  callables via manifest entrypoints.
+- S03 tasks T1–T4 are complete, but PR #45 review follow-up remains open until
+  Devin approves the final head; CodeQL upload and release/publish gate
+  findings remain owner-controlled.
+  Branch `sprint/S03-disposable-tracer` contains the corrected reports, findings
+  memo, fresh raw samples, review/CI fixes, tracer hot-path optimization, and
+  the symmetric warm-baseline evidence.
+- Next prompt is `P1-validate.md`: an independent Validator session must
+  verify the work, run `./scripts/check.sh`, and either close the sprint or
+  reopen with blockers.
+- S04 will implement the three §29 high-risk experiments against the
+  opportunities identified in `docs/benchmarks/phase0-tracer-findings.md`.
+- S02 is merged to `main` and done; all tasks T0-T5 accepted.
+- Baseline artifacts are on `main`:
+  - `docs/benchmarks/phase0-baseline.md` — absolute times, CIs, bottleneck analysis.
+  - `artifacts/raw/phase0/samples.jsonl` — 180 warm samples (30 per workload×variant).
+  - `artifacts/analysis/phase0/{summary.md,summary.json,confidence_intervals.csv}`.
+  - `artifacts/traces/phase0/*.nsys-rep` — Nsight Systems 2024.4.1 traces for all 6 combos.
 - The plan's §36 approval record is pending; the S05 gate collects the
   formal sign-offs. Proceeding through M0 is explicitly authorized by the
   owner (2026-08-10).
-- Autonomous Orca loop harness is present on `main` (`scripts/cobra_orca_loop.py`,
-  wrapper, precheck).
 - Security contact email remains a flagged placeholder in `SECURITY.md`.

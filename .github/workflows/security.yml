@@ -16,13 +16,35 @@ permissions:
   security-events: write
 
 jobs:
+  detect-codeql-languages:
+    name: Detect CodeQL languages
+    runs-on: ubuntu-latest
+    outputs:
+      languages: ${{ steps.detect.outputs.languages }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Detect source-backed languages
+        id: detect
+        shell: bash
+        run: |
+          languages='["python"]'
+          if find . -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.cxx' -o -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.cu' -o -name '*.cuh' \) -not -path './.git/*' -print -quit | grep -q .; then
+            languages='["python", "cpp"]'
+          fi
+          echo "languages=$languages" >> "$GITHUB_OUTPUT"
+
   codeql:
     name: CodeQL
+    needs: detect-codeql-languages
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        language: [python, cpp]
+        # Keep every matrix entry source-backed. Native code automatically
+        # joins the scan once it lands, without a permanently blind language.
+        language: ${{ fromJSON(needs.detect-codeql-languages.outputs.languages) }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -37,3 +59,8 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          # The private repository has Advanced Security disabled. Local
+          # analysis remains required until the owner enables code scanning;
+          # then this must be changed to upload: true.
+          upload: false

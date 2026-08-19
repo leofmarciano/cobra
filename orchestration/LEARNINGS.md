@@ -14,20 +14,92 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   requires updating `scripts/ci/python-test.sh` and `python-lint.sh`. Validator
   found `./scripts/check.sh` was not running `benchmarks/harness` tests or mypy
   on the harness; fixed by adding the package paths to those scripts.
+- [2026-08-11][S02] A dedicated `cobra-pipelines` workspace package keeps the
+  heavy framework dependencies (torch, pandas, pyarrow) out of `cobra-bench`
+  itself while still making workload entrypoints importable via `uv sync`.
+- [2026-08-11][S02] `npx knip` on Node 24 may install a newer `knip` (6.x)
+  than the package-lock pinned version (5.x).  If `knip` reports unused
+  dependencies for packages that are only referenced in `package.json`
+  scripts and whose binaries are in `ignoreBinaries`, add them to
+  `ignoreDependencies` or pin the `npx` version to the lockfile version.
 
 ## Python / frameworks (torch, pandas, cuDF, Arrow)
 
-- (none yet)
+- [2026-08-11][S02] `cudf-cu13==26.6.0` (RAPIDS wheel for CUDA 13 drivers)
+  constrains `numpy<2.5,>=1.26`, `pandas<2.4.0,>=2.0`, `pyarrow<24,>=19.0.0`.
+  The current upstream-latest releases (numpy 2.5.x, pandas 3.0.x, pyarrow
+  25.x) are NOT installable alongside cudf.pandas. When pinning "latest
+  stable" framework versions for a B1 baseline that uses `cudf.pandas`,
+  resolve the whole set together (e.g. `uv pip install --dry-run`) rather
+  than picking each package's latest release independently.
+- [2026-08-11][S02] No system-wide `nvcc`/CUDA toolkit is required to run
+  torch/cudf GPU workloads via pip wheels — `nvidia-cuda-nvcc-cu13`,
+  `nvidia-cuda-runtime-cu13`, etc. ship as transitive pip deps of the
+  cu13-tagged wheels and are sufficient for pip-wheel-based (non-native-build)
+  workloads.
+- [2026-08-11][S02] `cudf.pandas` can raise a pandas `AssertionError` on
+  DataFrame arithmetic such as `(numeric - mean) / std` because the proxy
+  DataFrame/Series column alignment differs subtly from native pandas. Fix:
+  drop to NumPy for the arithmetic (`numeric.to_numpy()`) and reconstruct a
+  plain pandas DataFrame, preserving downstream callers that expect a
+  DataFrame interface.
 
 ## CUDA / GPU host
 
-- (none yet)
+- [2026-08-11][S02] On WSL2, Nsight Systems CLI may capture the CUDA API trace
+  but produce empty GPU kernel data because GPU→CPU timestamp conversion fails.
+  Workaround: set `CuptiUseRawGpuTimestamps=false` in the file reported by
+  `nsys -z` (`~/.config/NVIDIA Corporation/nsys-config.ini`) before profiling.
+  The resulting traces are less precise but GPU kernels appear on the timeline
+  and in `cuda_gpu_kern_sum` reports.
+- [2026-08-11][S02] `torch.compile` with the Inductor backend calls
+  `nvcc --version` during repro/debug graph serialization. If `nvcc` is not
+  on PATH (pip-wheel install puts it under `site-packages/nvidia/cu13/bin/`),
+  the compilation fails with a misleading `PermissionError: [Errno 13]
+  Permission denied: 'nvcc'`. Fix: ensure the pip-wheel nvcc dir is on PATH
+  before calling `torch.compile`. The `_compile_env.ensure_nvcc_in_path()`
+  helper in `cobra_pipelines` handles this.
 
 ## MLIR / compiler core
 
 - (none yet)
 
+## Tracing / instrumentation
+
+- [2026-08-11][S03] A per-call source-location lookup that calls
+  `Path.resolve()`/`os.path.abspath()` on every stack frame it walks is a
+  hot-loop cost: it turned a 50-iteration `torch.relu(x @ x)` microbenchmark
+  from ~0.005s eager into ~1.4s traced (~250x, blowing the <10x tracer
+  overhead budget). Fix: resolve the "skip dir" prefixes once outside the
+  hot path and compare raw (already-absolute) `frame.f_code.co_filename`
+  strings with plain `str.startswith`, never re-resolving per frame.
+- [2026-08-11][S03] NumPy's `__array_function__` protocol on a custom
+  `ndarray` subclass recurses infinitely if you unwrap only top-level args:
+  functions like `np.concatenate([arr, arr])` pass the traced arrays inside
+  a `list`, so the unwrap step must recurse into `list`/`tuple` arguments
+  before calling the underlying NumPy function, or the wrapped array is
+  still visible to dispatch and re-enters `__array_function__` forever.
+- [2026-08-11][S03] The torch recorder sees many internal `.to` calls on
+  parameters/allocations, so inferring "host/device transfer" from any
+  input/output device difference flags hundreds of false positives. Fix:
+  restrict transfer detection to explicit transfer op names (`.to`, `.cpu`,
+  `.cuda`, `from_numpy`, `numpy`) and require one side of the transfer to be
+  a GPU device.
+
 ## Benchmarking & measurement
+
+- [2026-08-11][S02] When comparing B0 vs B1 outputs, `torch.compile` may
+  reorder float32 ops and introduce up to ~1e-3 absolute differences in
+  softmax/confidence outputs.  The harness `_float_key` treats Python `float`
+  as `"float64"` by default (rtol=1e-5), which is too strict for float32
+  model outputs serialized as Python floats.  Fix: add a `"float"` key to
+  `rtol_by_dtype`/`atol_by_dtype` in the suite YAML (e.g., `float: 1e-3`)
+  so the harness applies float32-appropriate tolerance.
+- [2026-08-11][S02] The `approx` correctness comparator should inspect the
+  concrete scalar type name (`float`, `float32`, `float64`) to pick a tolerance
+  from `rtol_by_dtype` / `atol_by_dtype`, and it must handle `None`, `bool`,
+  `str`, nested `dict`/`list`, and numeric tolerance with `math.isclose`
+  (plan §33.4).
 
 - [2026-08-11][S01 validation] The timing engine's `stability_window`
   currently doubles as the earliest point at which warmup can stop; there is no
@@ -44,6 +116,14 @@ Format: `- [YYYY-MM-DD][S<NN>] lesson`
   the key even when short-circuiting because the value is `None`/absent —
   otherwise a later "reject unknown keys" pass reports a false-positive
   "unknown field" for legitimately-null optional fields.
+
+## Validation
+
+- [2026-08-11][S02 validation] A sprint Validation block must match the
+  current CLI's required arguments. A missing `--output` flag in the documented
+  `cobra-bench verify` command caused the validator's first reproduction attempt
+  to fail, even though the code was correct. Fix: keep the Validation block
+  synchronized with the actual CLI parser.
 
 ## Loop & process
 

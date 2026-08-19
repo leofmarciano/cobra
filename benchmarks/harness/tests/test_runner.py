@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
+from typing import Any
 
 import pytest
+from cobra_bench import runner as runner_module
 from cobra_bench.manifest import BenchmarkManifest, ProtocolInfo, VariantSpec, WorkloadSpec
 from cobra_bench.runner import (
     TimingOptions,
+    build_oracle,
     resolve_entrypoint,
     run_and_record,
     run_workload,
@@ -20,7 +24,9 @@ def _example_manifest() -> BenchmarkManifest:
     return BenchmarkManifest(
         run_id="test-run",
         suite="test-suite",
-        protocol=ProtocolInfo(minimum_samples=5),
+        # The dummy workload is intentionally tiny and noisy on shared CI
+        # runners; production manifests still default to stability warmup.
+        protocol=ProtocolInfo(warmup_policy="fixed", warmup_samples=5, minimum_samples=5),
         workloads=[
             WorkloadSpec(
                 name="dummy_add",
@@ -105,6 +111,124 @@ class TestRunWorkload:
         options = TimingOptions(phase="cold", min_samples=2)
         with pytest.raises(ValueError, match="no-oracle"):
             run_workload(manifest, workload, ["a", "b"], options)
+
+
+class TestBuildOracle:
+    @pytest.fixture()
+    def _approx_baseline(self, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+        expected = {"mean": 1.0, "total": 42}
+        monkeypatch.setattr("cobra_bench.runner._load_expected", lambda _variant: expected)
+        return expected
+
+    def test_approx_passes_within_float_tolerance(self, _approx_baseline: dict[str, Any]) -> None:
+        oracle = build_oracle(
+            WorkloadSpec(name="approx", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float64": 1e-5},
+            atol_by_dtype={"float64": 1e-8},
+        )
+        assert oracle({"mean": 1.000001, "total": 42}) is True
+
+    def test_approx_fails_outside_float_tolerance(self, _approx_baseline: dict[str, Any]) -> None:
+        oracle = build_oracle(
+            WorkloadSpec(name="approx", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float64": 1e-5},
+            atol_by_dtype={"float64": 1e-8},
+        )
+        assert oracle({"mean": 1.1, "total": 42}) is False
+
+    def test_approx_compares_integer_leaves_exactly(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        expected = {"n_rows": 100_000}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="approx", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float": 1e-3},
+            atol_by_dtype={"float": 1e-3},
+        )
+
+        assert oracle({"n_rows": 100_001}) is False
+        assert oracle({"n_rows": 100_000.0}) is False
+
+    def test_approx_equal_nan_respects_manifest_setting(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        workload = WorkloadSpec(name="nan", variants=[])
+        variant = VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a")
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: {"value": math.nan})
+        accepts_nan = build_oracle(workload, variant, comparator="approx", equal_nan=True)
+        rejects_nan = build_oracle(workload, variant, comparator="approx", equal_nan=False)
+
+        assert accepts_nan({"value": math.nan}) is True
+        assert rejects_nan({"value": math.nan}) is False
+
+    def test_approx_uses_atol_only_dtype_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        expected = {"value": 1.0}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="atol", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float64": 0.0},
+            atol_by_dtype={"float": 0.1},
+        )
+
+        assert oracle({"value": 1.05}) is True
+
+    def test_approx_uses_actual_dtype_when_expected_is_python_float(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class float32(float):
+            pass
+
+        expected = {"value": 1.0}
+        monkeypatch.setattr(runner_module, "_load_expected", lambda _variant: expected)
+        oracle = build_oracle(
+            WorkloadSpec(name="dtype", variants=[]),
+            VariantSpec(name="baseline", entrypoint="cobra_bench.examples.dummy:variant_a"),
+            comparator="approx",
+            rtol_by_dtype={"float32": 0.1},
+            atol_by_dtype={"float32": 0.0},
+        )
+
+        assert oracle({"value": float32(1.05)}) is True
+
+
+def test_verify_reuses_loaded_baseline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verification must not execute the baseline again just to build its oracle."""
+    expected = {"value": 1}
+    load_calls = 0
+    resolve_calls = 0
+
+    def load(_variant: VariantSpec) -> dict[str, int]:
+        nonlocal load_calls
+        load_calls += 1
+        return expected
+
+    def resolve(_entrypoint: str):
+        nonlocal resolve_calls
+        resolve_calls += 1
+        return lambda: expected
+
+    monkeypatch.setattr(runner_module, "_load_expected", load)
+    monkeypatch.setattr(runner_module, "resolve_entrypoint", resolve)
+    workload = WorkloadSpec(
+        name="reuse-baseline",
+        variants=[
+            VariantSpec(name="a", entrypoint="example:a"),
+            VariantSpec(name="b", entrypoint="example:b"),
+        ],
+    )
+
+    report = verify_workload(workload, ["a", "b"], comparator="exact")
+
+    assert report.passed is True
+    assert load_calls == 1
+    assert resolve_calls == 1
 
 
 class TestRunAndRecord:
