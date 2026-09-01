@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "knip": "^5.50.0",
+    "knip": "^6.33.0",
     "markdownlint-cli2": "^0.23.2"
   },
   "engines": {
